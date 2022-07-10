@@ -141,7 +141,7 @@ public class playerScript : NetworkBehaviour
 
         Vector3 delta = flatRight * input.x + flatForward * input.y;
 
-        velocity -= Vector3.up * 10f * Time.deltaTime;
+        velocity -= Vector3.up * 13f * Time.deltaTime;
 
         velocity += Vector3.ProjectOnPlane(delta * topSpeed - velocity, gNormal);
 
