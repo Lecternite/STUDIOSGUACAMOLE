@@ -6,6 +6,7 @@ TagManager:
   tags:
   - EnemyPlayer
   - GunCollectible
+  - CrossHair
   layers:
   - Default
   - TransparentFX
