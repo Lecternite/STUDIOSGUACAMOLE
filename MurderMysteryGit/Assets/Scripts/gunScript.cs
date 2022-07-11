@@ -36,6 +36,8 @@ public class gunScript : MonoBehaviour
 
     public event Action GunDropped;
 
+    float amount = 0f;
+
     private void Awake()
     {
         layerMask = ~(1 << 6);
@@ -132,8 +134,10 @@ public class gunScript : MonoBehaviour
             Camera.main.fieldOfView = Mathf.Lerp(80f, 50f, v);
             pointer.color = new Color(pointer.color.r, pointer.color.g, pointer.color.b, 1f - v);
 
+            amount = Mathf.Lerp(amount, Camera.main.GetComponent<cameraScript>().player.GetComponent<playerScript>().velocity.magnitude / 7f, 5f * Time.deltaTime);
+            Vector3 offset = new Vector3(MathF.Sin(6f * Time.timeSinceLevelLoad) / 10f, (MathF.Abs(MathF.Cos(6f * Time.timeSinceLevelLoad)) - 0.5f) / 15f, 0) * amount;
 
-            transform.position = Camera.main.transform.TransformPoint(Vector3.Lerp(defaultPos, scopedPos, v));
+            transform.position = Camera.main.transform.TransformPoint(Vector3.Lerp(defaultPos + offset, scopedPos, v));
             Quaternion tilt = Quaternion.AngleAxis(recoil, Vector3.left);
             transform.rotation = Camera.main.transform.localToWorldMatrix.rotation * tilt;
 

@@ -14,7 +14,7 @@ public class playerScript : NetworkBehaviour
     [HideInInspector]
     public GameObject nameTag;
 
-    Vector3 velocity;
+    public Vector3 velocity;
 
     CapsuleCollider myCollider;
 
