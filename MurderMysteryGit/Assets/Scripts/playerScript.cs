@@ -32,6 +32,8 @@ public class playerScript : NetworkBehaviour
 
     gunScript gun;
 
+    public bool grounded;
+
 
     public override void OnStartClient()
     {
@@ -114,7 +116,7 @@ public class playerScript : NetworkBehaviour
         }
 
         gNormal = Vector3.up;
-        bool grounded = false;
+        grounded = false;
         collision(ref grounded);
 
         //if (grounded)
