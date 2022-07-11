@@ -1,7 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.InputSystem;
 using System;
 
 public class cameraScript : MonoBehaviour
@@ -9,7 +8,6 @@ public class cameraScript : MonoBehaviour
     [HideInInspector]
     public GameObject player;
     [HideInInspector]
-    public PlayerInput playerInput;
 
     float rotX = 0;
     float rotY = 0;

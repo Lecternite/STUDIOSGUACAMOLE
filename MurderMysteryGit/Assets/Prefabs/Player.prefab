@@ -31,7 +31,7 @@ Transform:
   m_GameObject: {fileID: 3047210776380725226}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: -0.51, y: 1.94, z: 2.04}
-  m_LocalScale: {x: 0.7, y: 0.7, z: 0.7}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
@@ -115,11 +115,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   syncMode: 0
   syncInterval: 0.1
-  ts: 1
   ForwardIndicatorPrefab: {fileID: 3166335332865972918, guid: 4ecd0232591e69848b65f432dc3eda9c,
     type: 3}
   NameTagPrefab: {fileID: 817268502059235634, guid: ac1557a306317de419af711d92fb8d69,
     type: 3}
+  nameTag: {fileID: 0}
+  gameEvents: {fileID: 0}
 --- !u!114 &-6069132265110908622
 MonoBehaviour:
   m_ObjectHideFlags: 0
