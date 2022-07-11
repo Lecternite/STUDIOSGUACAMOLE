@@ -12,8 +12,8 @@ public class gunScript : MonoBehaviour
     float value = 0;
     float v = 0;
 
-    [SerializeField]
-    Image pointer;
+    [HideInInspector]
+    public Image pointer;
 
     [SerializeField]
     ParticleSystem spark;
@@ -42,6 +42,7 @@ public class gunScript : MonoBehaviour
         col = GetComponent<SphereCollider>();
         camScript = FindObjectOfType<cameraScript>();
         camScript.cameraUpdated += OnCamUpdate;
+        pointer = GameObject.FindGameObjectWithTag("CrossHair").GetComponent<Image>();
     }
     private void OnDestroy()
     {
