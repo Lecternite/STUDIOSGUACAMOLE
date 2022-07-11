@@ -47,8 +47,8 @@ public class playerScript : NetworkBehaviour
             tag = "Player";
             gameObject.layer = 6;
 
-            //gameEvents.toserver_sendName(netIdentity, gameEvents.playerUserName);
-            //gameEvents.toserver_requestNames(netIdentity);
+            gameEvents.toserver_sendName(netIdentity, gameEvents.playerUserName);
+            gameEvents.toserver_requestNames(netIdentity);
 
             playerCreated?.Invoke();
         }
