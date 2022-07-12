@@ -35,6 +35,11 @@ public class playerScript : NetworkBehaviour
     public bool grounded;
 
 
+    public void HandelGameStateChanged(GameEvents.GameState state)
+    {
+        Debug.Log("I AM AWARE OF " + state.ToString());
+    }
+
     public override void OnStartClient()
     {
         base.OnStartClient();

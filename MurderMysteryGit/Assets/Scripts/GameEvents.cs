@@ -13,6 +13,28 @@ public class GameEvents : NetworkBehaviour
     public string playerUserName = "unknown";
 
 
+    public enum GameState
+    {
+        waitingForPlayers,
+        gracePeriod,
+        murderMystery,
+    }
+
+    public GameState gameState = GameState.waitingForPlayers;
+
+    // SENDS
+    public UnityEvent<GameState> GameStateEntered;
+    public UnityEvent<GameState> GameStateExited;
+
+    // RECIEVE
+    public void EnterGameState(GameState _gameState)
+    {
+        GameStateExited?.Invoke(gameState);
+        gameState = _gameState;
+        GameStateEntered?.Invoke(gameState);
+    }
+
+
     public void setUserName(string name)
     {
         playerUserName = name;

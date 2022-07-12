@@ -6,6 +6,7 @@ using UnityEngine.InputSystem;
 public class Inputter : MonoBehaviour
 {
     public static Inputter Instance;
+    [HideInInspector]
     public PlayerInput playerInput;
     private void Awake()
     {
