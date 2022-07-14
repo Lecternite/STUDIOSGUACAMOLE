@@ -7,11 +7,12 @@ using Mirror;
 
 public class GameEvents : NetworkBehaviour
 {
-    [SerializeField]
-    GameObject playerPrefab;
-
     public string playerUserName = "unknown";
 
+    public bool localPlayerReady = false;
+
+    [SyncVar]
+    public int numReady = 0;
 
     public enum GameState
     {
@@ -22,18 +23,17 @@ public class GameEvents : NetworkBehaviour
 
     public GameState gameState = GameState.waitingForPlayers;
 
-    // SENDS
+    // EVENTS
     public UnityEvent<GameState> GameStateEntered;
     public UnityEvent<GameState> GameStateExited;
 
-    // RECIEVE
+    // PUBLIC
     public void EnterGameState(GameState _gameState)
     {
         GameStateExited?.Invoke(gameState);
         gameState = _gameState;
         GameStateEntered?.Invoke(gameState);
     }
-
 
     public void setUserName(string name)
     {
@@ -70,4 +70,43 @@ public class GameEvents : NetworkBehaviour
             toserver_sendName(NetworkClient.localPlayer, playerUserName);
         }
     }
+
+    private void Update()
+    {
+        if (Inputter.Instance.playerInput.actions["Ready Up"].WasPerformedThisFrame())
+        {
+            server_changeReady(!localPlayerReady);
+            localPlayerReady = !localPlayerReady;
+        }
+
+        if (!isServer)
+        {
+            return;
+        }
+
+        if(numReady >= NetworkServer.connections.Count)
+        {
+            EnterGameState(GameState.gracePeriod);
+        }
+
+    }
+
+    public string getNumPlayers()
+    {
+        return NetworkServer.connections.Count.ToString();
+    }
+
+    [Command(requiresAuthority = false)]
+    public void server_changeReady(bool ready)
+    {
+        if (ready)
+        {
+            numReady += 1;
+        }
+        else
+        {
+            numReady -= 1;
+        }
+    }
+    
 }

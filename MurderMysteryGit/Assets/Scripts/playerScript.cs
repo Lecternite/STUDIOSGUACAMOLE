@@ -43,7 +43,7 @@ public class playerScript : NetworkBehaviour
     public override void OnStartClient()
     {
         base.OnStartClient();
-        if (base.hasAuthority)
+        if (hasAuthority)
         {
             gameEvents = FindObjectOfType<GameEvents>();
 
@@ -68,6 +68,12 @@ public class playerScript : NetworkBehaviour
             nameTag.transform.localPosition = Vector3.up * 1.2f;
             nameTag.GetComponent<TMPro.TMP_Text>().text = netId.ToString();
         }
+    }
+
+    void handleGameStateEntered(GameEvents.GameState gs)
+    {
+        local_Respawn();
+        //Debug.Log()
     }
 
 
@@ -119,6 +125,8 @@ public class playerScript : NetworkBehaviour
         {
             local_Respawn();
         }
+
+        
 
         gNormal = Vector3.up;
         grounded = false;

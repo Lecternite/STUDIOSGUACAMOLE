@@ -45,7 +45,7 @@ public class cameraScript : MonoBehaviour
         if(player != null)
         {
             target = player.transform.position;
-            transform.position = target + player.transform.up * 0.3f;
+            transform.position = target + player.transform.up * 0.6f;
         }
 
         if (Inputter.Instance.playerInput.actions["MouseLock"].WasPressedThisFrame())
