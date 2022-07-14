@@ -28,16 +28,17 @@ public class playerScript : NetworkBehaviour
 
     public GameEvents gameEvents;
 
-    public static event Action playerCreated;
+    public static event Action<playerScript> playerCreated;
 
     gunScript gun;
 
     public bool grounded;
 
 
-    public void HandelGameStateChanged(GameEvents.GameState state)
+    public void handleStateChange(GameEvents.GameState state)
     {
-        Debug.Log("I AM AWARE OF " + state.ToString());
+        local_Respawn();
+        Debug.Log(state.ToString());
     }
 
     public override void OnStartClient()
@@ -57,7 +58,9 @@ public class playerScript : NetworkBehaviour
             gameEvents.toserver_sendName(netIdentity, gameEvents.playerUserName);
             gameEvents.toserver_requestNames(netIdentity);
 
-            playerCreated?.Invoke();
+            playerCreated?.Invoke(this);
+
+            //gameEvents.GameStateEntered += HandleGameStateEntered;
         }
         else
         {
@@ -70,12 +73,14 @@ public class playerScript : NetworkBehaviour
         }
     }
 
-    void handleGameStateEntered(GameEvents.GameState gs)
+    public override void OnStopClient()
     {
-        local_Respawn();
-        //Debug.Log()
+        base.OnStopClient();
+        if (hasAuthority)
+        {
+            //gameEvents.GameStateEntered -= HandleGameStateEntered;
+        }
     }
-
 
     void collision(ref bool _grounded)
     {
@@ -112,13 +117,14 @@ public class playerScript : NetworkBehaviour
     }
 
 
+
     void Update()
     {
         if (!base.hasAuthority)
         {
             return;
         }
-        
+        //Debug.Log(velocity);
         transform.position += velocity * Time.deltaTime;
 
         if (Inputter.Instance.playerInput.actions["Respawn"].WasPressedThisFrame())

@@ -3486,20 +3486,7 @@ MonoBehaviour:
   gameState: 0
   GameStateEntered:
     m_PersistentCalls:
-      m_Calls:
-      - m_Target: {fileID: 3047210776380725231, guid: ae5ea19792f04ef4e86c337fbd852c3e,
-          type: 3}
-        m_TargetAssemblyTypeName: playerScript, Assembly-CSharp
-        m_MethodName: HandelGameStateChanged
-        m_Mode: 0
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
+      m_Calls: []
   GameStateExited:
     m_PersistentCalls:
       m_Calls: []

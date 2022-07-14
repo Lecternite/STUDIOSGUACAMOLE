@@ -27,6 +27,17 @@ public class GameEvents : NetworkBehaviour
     public UnityEvent<GameState> GameStateEntered;
     public UnityEvent<GameState> GameStateExited;
 
+    void handlePlayer(playerScript player)
+    {
+        GameStateEntered.AddListener(player.handleStateChange);
+        playerScript.playerCreated -= handlePlayer;
+    }
+
+    private void Awake()
+    {
+        playerScript.playerCreated += handlePlayer;
+    }
+
     // PUBLIC
     public void EnterGameState(GameState _gameState)
     {
@@ -83,10 +94,10 @@ public class GameEvents : NetworkBehaviour
         {
             return;
         }
-
-        if(numReady >= NetworkServer.connections.Count)
+        
+        if(numReady >= NetworkServer.connections.Count && gameState != GameState.gracePeriod)
         {
-            EnterGameState(GameState.gracePeriod);
+            server_invokeStart(GameState.gracePeriod);
         }
 
     }
@@ -107,6 +118,18 @@ public class GameEvents : NetworkBehaviour
         {
             numReady -= 1;
         }
+    }
+
+    [Command(requiresAuthority = false)]
+    void server_invokeStart(GameState state)
+    {
+        client_invokeStart(state);
+    }
+
+    [ClientRpc]
+    void client_invokeStart(GameState state)
+    {
+        EnterGameState(GameState.gracePeriod);
     }
     
 }
