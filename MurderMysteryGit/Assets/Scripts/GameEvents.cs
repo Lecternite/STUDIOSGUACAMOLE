@@ -19,6 +19,7 @@ public class GameEvents : NetworkBehaviour
         waitingForPlayers,
         gracePeriod,
         murderMystery,
+        gameEnding,
     }
 
     public GameState gameState = GameState.waitingForPlayers;
@@ -27,19 +28,14 @@ public class GameEvents : NetworkBehaviour
     public UnityEvent<GameState> GameStateEntered;
     public UnityEvent<GameState> GameStateExited;
 
-    void handlePlayer(playerScript player)
+    [Command(requiresAuthority = false)]
+    public void server_EnterGameState(GameState _gameState)
     {
-        GameStateEntered.AddListener(player.handleStateChange);
-        playerScript.playerCreated -= handlePlayer;
+        client_EnterGameState(_gameState);
     }
 
-    private void Awake()
-    {
-        playerScript.playerCreated += handlePlayer;
-    }
-
-    // PUBLIC
-    public void EnterGameState(GameState _gameState)
+    [ClientRpc]
+    public void client_EnterGameState(GameState _gameState)
     {
         GameStateExited?.Invoke(gameState);
         gameState = _gameState;
@@ -68,13 +64,13 @@ public class GameEvents : NetworkBehaviour
     }
 
     [Command(requiresAuthority = false)]
-    public void toserver_requestNames(NetworkIdentity netID)
+    public void server_requestNames(NetworkIdentity netID)
     {
-        toclient_requestNames(netID);
+        client_requestNames(netID);
     }
 
     [ClientRpc]
-    public void toclient_requestNames(NetworkIdentity netID)
+    public void client_requestNames(NetworkIdentity netID)
     {
         if(!netID.hasAuthority)
         {
@@ -82,12 +78,21 @@ public class GameEvents : NetworkBehaviour
         }
     }
 
+    private void Start()
+    {
+        GameStateEntered?.Invoke(gameState);
+    }
+
     private void Update()
     {
-        if (Inputter.Instance.playerInput.actions["Ready Up"].WasPerformedThisFrame())
+        if (isClient)
         {
-            server_changeReady(!localPlayerReady);
-            localPlayerReady = !localPlayerReady;
+            if (Inputter.Instance.playerInput.actions["Ready Up"].WasPerformedThisFrame())
+            {
+                server_changeReady(!localPlayerReady);
+                localPlayerReady = !localPlayerReady;
+            }
+
         }
 
         if (!isServer)
@@ -95,12 +100,38 @@ public class GameEvents : NetworkBehaviour
             return;
         }
         
-        if(numReady >= NetworkServer.connections.Count && gameState != GameState.gracePeriod)
+        //ON SERVER ONLY!
+
+        if(numReady >= NetworkServer.connections.Count && gameState == GameState.waitingForPlayers)
         {
             server_invokeStart(GameState.gracePeriod);
         }
 
+        switch (gameState)
+        {
+            case GameState.gracePeriod:
+                gracePeriodUpdate();
+                break;
+        }
     }
+
+    private void gracePeriodUpdate()
+    {
+        int num = UnityEngine.Random.Range(0, NetworkServer.connections.Count);
+        int iter = 0;
+
+        foreach(var client in NetworkServer.connections)
+        {
+            if(iter == num)
+            {
+                client.Value.identity.gameObject.GetComponent<playerScript>().setImposter(true);
+            }
+            iter += 1;
+        }
+
+        client_EnterGameState(GameState.murderMystery);
+    }
+
 
     public string getNumPlayers()
     {
@@ -129,7 +160,7 @@ public class GameEvents : NetworkBehaviour
     [ClientRpc]
     void client_invokeStart(GameState state)
     {
-        EnterGameState(GameState.gracePeriod);
+        client_EnterGameState(GameState.gracePeriod);
     }
     
 }

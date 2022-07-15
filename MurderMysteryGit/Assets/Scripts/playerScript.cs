@@ -34,19 +34,26 @@ public class playerScript : NetworkBehaviour
 
     public bool grounded;
 
+    [SyncVar]
+    public bool imposter = false;
+
 
     public void handleStateChange(GameEvents.GameState state)
     {
-        local_Respawn();
         Debug.Log(state.ToString());
+    }
+
+    public void Awake()
+    {
+        gameEvents = FindObjectOfType<GameEvents>();
     }
 
     public override void OnStartClient()
     {
+
         base.OnStartClient();
         if (hasAuthority)
         {
-            gameEvents = FindObjectOfType<GameEvents>();
 
             myCollider = GetComponent<CapsuleCollider>();
             layermask = ~(1 << 6);
@@ -56,11 +63,11 @@ public class playerScript : NetworkBehaviour
             gameObject.layer = 6;
 
             gameEvents.toserver_sendName(netIdentity, gameEvents.playerUserName);
-            gameEvents.toserver_requestNames(netIdentity);
+            gameEvents.server_requestNames(netIdentity);
 
             playerCreated?.Invoke(this);
 
-            //gameEvents.GameStateEntered += HandleGameStateEntered;
+            gameEvents.GameStateEntered.AddListener(handleStateChange);
         }
         else
         {
@@ -78,7 +85,7 @@ public class playerScript : NetworkBehaviour
         base.OnStopClient();
         if (hasAuthority)
         {
-            //gameEvents.GameStateEntered -= HandleGameStateEntered;
+            gameEvents.GameStateEntered.RemoveListener(handleStateChange);
         }
     }
 
@@ -117,6 +124,10 @@ public class playerScript : NetworkBehaviour
     }
 
 
+    public void setImposter(bool _imposter)
+    {
+        imposter = _imposter;
+    }
 
     void Update()
     {
@@ -124,7 +135,6 @@ public class playerScript : NetworkBehaviour
         {
             return;
         }
-        //Debug.Log(velocity);
         transform.position += velocity * Time.deltaTime;
 
         if (Inputter.Instance.playerInput.actions["Respawn"].WasPressedThisFrame())
@@ -190,13 +200,20 @@ public class playerScript : NetworkBehaviour
     #region Respawn()
     public void local_Respawn()
     {
-        transform.position = new Vector3(0, 20, 0);
-        velocity = Vector3.zero;
+        if (hasAuthority)
+        {
+            transform.position = new Vector3(0, 20, 0);
+            velocity = Vector3.zero;
+        }
     }
 
     [ClientRpc]
     public void toclient_Respawn()
     {
+        if(gameEvents.gameState == GameEvents.GameState.murderMystery && imposter)
+        {
+            gameEvents.server_EnterGameState(GameEvents.GameState.gameEnding);
+        }
         local_Respawn();
     }
 
