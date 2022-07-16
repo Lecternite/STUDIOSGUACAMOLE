@@ -37,6 +37,8 @@ public class playerScript : NetworkBehaviour
     [SyncVar]
     public bool imposter = false;
 
+    bool canShoot = true;
+
 
     public void handleStateChange(GameEvents.GameState state)
     {
@@ -200,21 +202,25 @@ public class playerScript : NetworkBehaviour
     #region Respawn()
     public void local_Respawn()
     {
-        if (hasAuthority)
-        {
-            transform.position = new Vector3(0, 20, 0);
-            velocity = Vector3.zero;
-        }
+        transform.position = new Vector3(0, 20, 0);
+        velocity = Vector3.zero;
     }
 
     [ClientRpc]
     public void toclient_Respawn()
     {
-        if(gameEvents.gameState == GameEvents.GameState.murderMystery && imposter)
+        if(hasAuthority)
         {
-            gameEvents.server_EnterGameState(GameEvents.GameState.gameEnding);
+            if(gameEvents.gameState == GameEvents.GameState.murderMystery)
+            {
+                if (imposter)
+                {
+                    gameEvents.server_EnterGameState(GameEvents.GameState.gameEnding);
+                }
+                server_GhostMe();
+            }
+            local_Respawn();
         }
-        local_Respawn();
     }
 
     [Command(requiresAuthority = false)]
@@ -224,4 +230,20 @@ public class playerScript : NetworkBehaviour
     }
     #endregion
 
+
+    [Command(requiresAuthority = false)]
+    public void server_GhostMe()
+    {
+        client_GhostMe();
+    }
+
+    [ClientRpc]
+    public void client_GhostMe()
+    {
+        if (!hasAuthority)
+        {
+            GetComponent<MeshRenderer>().enabled = false;
+            nameTag.GetComponent<TMPro.TMP_Text>().alpha = 0;
+        }
+    }
 }
