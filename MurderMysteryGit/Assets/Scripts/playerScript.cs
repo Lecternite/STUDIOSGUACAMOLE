@@ -130,10 +130,30 @@ public class playerScript : NetworkBehaviour
     {
         imposter = _imposter;
     }
+    /*
+    public void updateState()
+    {
+        //Stuff
+    }
+
+    public void reconcile(Transform serverState)
+    {
+        transform.position = serverState.position;//Revert to this previous state from the server
+        transform.rotation = serverState.rotation;
+        velocity = serverState.velocity;
+
+        int tickDifference = currentTick - serverState.tick;//Get the time discrepency
+
+        for (int i = 0; i < tickDifference; i++)//Fast forward from the serverState to the present
+        {
+            updateState();
+        }
+    }
+    */
 
     void Update()
     {
-        if (!base.hasAuthority)
+        if (!hasAuthority)
         {
             return;
         }
@@ -143,7 +163,6 @@ public class playerScript : NetworkBehaviour
         {
             local_Respawn();
         }
-
         
 
         gNormal = Vector3.up;
