@@ -123,6 +123,7 @@ MonoBehaviour:
   velocity: {x: 0, y: 0, z: 0}
   gameEvents: {fileID: 0}
   grounded: 0
+  imposter: 0
 --- !u!114 &-6069132265110908622
 MonoBehaviour:
   m_ObjectHideFlags: 0
