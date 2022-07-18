@@ -28,6 +28,9 @@ public class GameEvents : NetworkBehaviour
     public UnityEvent<GameState> GameStateEntered;
     public UnityEvent<GameState> GameStateExited;
 
+
+    #region RPC
+
     [Command(requiresAuthority = false)]
     public void server_EnterGameState(GameState _gameState)
     {
@@ -42,10 +45,6 @@ public class GameEvents : NetworkBehaviour
         GameStateEntered?.Invoke(gameState);
     }
 
-    public void setUserName(string name)
-    {
-        playerUserName = name;
-    }
 
 
     [Command(requiresAuthority = false)]
@@ -78,6 +77,34 @@ public class GameEvents : NetworkBehaviour
         }
     }
 
+    [Command(requiresAuthority = false)]
+    void server_invokeStart(GameState state)
+    {
+        client_invokeStart(state);
+    }
+
+    [ClientRpc]
+    void client_invokeStart(GameState state)
+    {
+        client_EnterGameState(GameState.gracePeriod);
+    }
+
+    [Command(requiresAuthority = false)]
+    public void server_changeReady(bool ready)
+    {
+        if (ready)
+        {
+            numReady += 1;
+        }
+        else
+        {
+            numReady -= 1;
+        }
+    }
+
+    #endregion
+
+
     private void Start()
     {
         GameStateEntered?.Invoke(gameState);
@@ -85,6 +112,7 @@ public class GameEvents : NetworkBehaviour
 
     private void Update()
     {
+        //CLIENT
         if (isClient)
         {
             if (Inputter.Instance.playerInput.actions["Ready Up"].WasPerformedThisFrame())
@@ -92,26 +120,23 @@ public class GameEvents : NetworkBehaviour
                 server_changeReady(!localPlayerReady);
                 localPlayerReady = !localPlayerReady;
             }
-
         }
 
-        if (!isServer)
+        //SERVER
+        if (isServer)
         {
-            return;
-        }
-        
-        //ON SERVER ONLY!
 
-        if(numReady >= NetworkServer.connections.Count && gameState == GameState.waitingForPlayers)
-        {
-            server_invokeStart(GameState.gracePeriod);
-        }
+            if (numReady >= NetworkServer.connections.Count && gameState == GameState.waitingForPlayers)
+            {
+                server_invokeStart(GameState.gracePeriod);
+            }
 
-        switch (gameState)
-        {
-            case GameState.gracePeriod:
-                gracePeriodUpdate();
-                break;
+            switch (gameState)
+            {
+                case GameState.gracePeriod:
+                    gracePeriodUpdate();
+                    break;
+            }
         }
     }
 
@@ -132,35 +157,14 @@ public class GameEvents : NetworkBehaviour
         client_EnterGameState(GameState.murderMystery);
     }
 
+    public void setUserName(string name)
+    {
+        playerUserName = name;
+    }
 
     public string getNumPlayers()
     {
         return NetworkServer.connections.Count.ToString();
     }
 
-    [Command(requiresAuthority = false)]
-    public void server_changeReady(bool ready)
-    {
-        if (ready)
-        {
-            numReady += 1;
-        }
-        else
-        {
-            numReady -= 1;
-        }
-    }
-
-    [Command(requiresAuthority = false)]
-    void server_invokeStart(GameState state)
-    {
-        client_invokeStart(state);
-    }
-
-    [ClientRpc]
-    void client_invokeStart(GameState state)
-    {
-        client_EnterGameState(GameState.gracePeriod);
-    }
-    
 }

@@ -37,17 +37,18 @@ public class playerScript : NetworkBehaviour
     [SyncVar]
     public bool imposter = false;
 
-    bool canShoot = true;
-
-
-    public void handleStateChange(GameEvents.GameState state)
-    {
-        Debug.Log(state.ToString());
-    }
 
     public void Awake()
     {
         gameEvents = FindObjectOfType<GameEvents>();
+        myCollider = GetComponent<CapsuleCollider>();
+        layermask = ~(1 << 6);
+        Clocky.instance.GameTick += update;
+    }
+
+    public void OnDestroy()
+    {
+        Clocky.instance.GameTick -= update;
     }
 
     public override void OnStartClient()
@@ -56,9 +57,6 @@ public class playerScript : NetworkBehaviour
         base.OnStartClient();
         if (hasAuthority)
         {
-
-            myCollider = GetComponent<CapsuleCollider>();
-            layermask = ~(1 << 6);
             Camera.main.GetComponent<cameraScript>().player = gameObject;
             fwdInd = Instantiate(ForwardIndicatorPrefab);
             tag = "Player";
@@ -125,91 +123,87 @@ public class playerScript : NetworkBehaviour
 
     }
 
-
     public void setImposter(bool _imposter)
     {
         imposter = _imposter;
     }
-    /*
-    public void updateState()
+
+    public void handleStateChange(GameEvents.GameState state)
     {
-        //Stuff
+        Debug.Log(state.ToString());
     }
 
-    public void reconcile(Transform serverState)
+
+    void update(float deltaTime)
     {
-        transform.position = serverState.position;//Revert to this previous state from the server
-        transform.rotation = serverState.rotation;
-        velocity = serverState.velocity;
-
-        int tickDifference = currentTick - serverState.tick;//Get the time discrepency
-
-        for (int i = 0; i < tickDifference; i++)//Fast forward from the serverState to the present
+        if (hasAuthority)
         {
-            updateState();
+            Vector2 input = Inputter.Instance.playerInput.actions["Move"].ReadValue<Vector2>();
+
+            movement(deltaTime, new InputSnap(input));
+
+            if (grounded)
+            {
+                if (Inputter.Instance.playerInput.actions["Jump"].WasPressedThisFrame())
+                {
+                    velocity.y += 5f;
+                }
+            }
+            else
+            {
+                gNormal = Vector3.up;
+            }
+
+            if (Inputter.Instance.playerInput.actions["Respawn"].WasPressedThisFrame())
+            {
+                local_Respawn();
+            }
+
+            if (Inputter.Instance.playerInput.actions["Crouch"].IsPressed())
+            {
+                myCollider.height = 1f;
+            }
+            else
+            {
+                myCollider.height = 2f;
+            }
+        }
+        else
+        {
+
         }
     }
-    */
 
-    void Update()
+    public void movement(float deltaTime, InputSnap input)
     {
-        if (!hasAuthority)
-        {
-            return;
-        }
-        transform.position += velocity * Time.deltaTime;
+        Vector2 inputVec = input.moveVec;
 
-        if (Inputter.Instance.playerInput.actions["Respawn"].WasPressedThisFrame())
-        {
-            local_Respawn();
-        }
-        
+        transform.position += velocity * deltaTime;
 
-        gNormal = Vector3.up;
         grounded = false;
         collision(ref grounded);
 
-        //if (grounded)
-        //{
-        //    RaycastHit hit;
-        //    if (Physics.Raycast(transform.position - transform.up * myCollider.height/2f, -transform.up, out hit, myCollider.radius * 3f, layermask))
-        //    {
-        //        transform.position = hit.point + transform.up * (myCollider.height / 2f + myCollider.radius);
-        //    }
-        //
-        //}
 
-        if (Inputter.Instance.playerInput.actions["Jump"].WasPressedThisFrame() && grounded)
-        {
-            velocity.y += 5f;
-        }
-
-        Vector2 input = Inputter.Instance.playerInput.actions["Move"].ReadValue<Vector2>();
-
-        input = Vector3.ClampMagnitude(input, 1f);
+        inputVec = Vector3.ClampMagnitude(inputVec, 1f);
 
         Vector3 flatRight = Vector3.ProjectOnPlane(Camera.main.transform.right, gNormal).normalized;
         Vector3 flatForward = Vector3.Cross(flatRight, gNormal).normalized;
 
-        Vector3 delta = flatRight * input.x + flatForward * input.y;
+        Vector3 delta = flatRight * inputVec.x + flatForward * inputVec.y;
 
-        velocity -= Vector3.up * 13f * Time.deltaTime;
+        velocity -= Vector3.up * 13f * deltaTime;
 
         velocity += Vector3.ProjectOnPlane(delta * topSpeed - velocity, gNormal);
 
         fwdInd.SetPosition(0, transform.position - transform.up * 0.5f);
         fwdInd.SetPosition(1, fwdInd.GetPosition(0) + flatForward);
-
-        if (Inputter.Instance.playerInput.actions["Crouch"].IsPressed())
-        {
-            myCollider.height = 1f;
-        }
-        else
-        {
-            myCollider.height = 2f;
-        }
     }
 
+    public void setState(PlayerState state)
+    {
+        transform.position = state.position;
+        velocity = state.velocity;
+    }
 
     void gunIsDropped()
     {
@@ -217,13 +211,13 @@ public class playerScript : NetworkBehaviour
         gun.GunDropped -= gunIsDropped;
     }
 
-
-    #region Respawn()
     public void local_Respawn()
     {
         transform.position = new Vector3(0, 20, 0);
         velocity = Vector3.zero;
     }
+
+    #region RPC
 
     [ClientRpc]
     public void toclient_Respawn()
@@ -247,8 +241,6 @@ public class playerScript : NetworkBehaviour
     {
         toclient_Respawn();
     }
-    #endregion
-
 
     [Command(requiresAuthority = false)]
     public void server_GhostMe()
@@ -265,4 +257,8 @@ public class playerScript : NetworkBehaviour
             nameTag.GetComponent<TMPro.TMP_Text>().alpha = 0;
         }
     }
+
+
+    #endregion
+
 }
