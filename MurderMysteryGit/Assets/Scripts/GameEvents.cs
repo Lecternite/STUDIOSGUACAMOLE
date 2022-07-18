@@ -24,10 +24,8 @@ public class GameEvents : NetworkBehaviour
 
     public GameState gameState = GameState.waitingForPlayers;
 
-    // EVENTS
     public UnityEvent<GameState> GameStateEntered;
     public UnityEvent<GameState> GameStateExited;
-
 
     #region RPC
 
@@ -103,7 +101,6 @@ public class GameEvents : NetworkBehaviour
     }
 
     #endregion
-
 
     private void Start()
     {

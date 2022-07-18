@@ -35,7 +35,7 @@ public class gameInfoBehavior : MonoBehaviour
             }
         }
 
-        tm.text = "Tick: " + Clocky.instance.tick.ToString() + " | " + gameEvents.gameState.ToString() + " | " + gameEvents.getNumPlayers() + " | " + gameEvents.numReady.ToString() + " | " + imposter;
+        tm.text = "Tick: " + /*Clocky.instance.tick.ToString() +*/ " | " + gameEvents.gameState.ToString() + " | " + gameEvents.getNumPlayers() + " | " + gameEvents.numReady.ToString() + " | " + imposter;
 ;
     }
 }

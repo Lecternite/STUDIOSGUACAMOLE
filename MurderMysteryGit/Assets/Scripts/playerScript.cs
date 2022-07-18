@@ -37,6 +37,8 @@ public class playerScript : NetworkBehaviour
     [SyncVar]
     public bool imposter = false;
 
+    List<InputSnap> inputList = new List<InputSnap>();
+    List<PlayerState> stateList = new List<PlayerState>();
 
     public void Awake()
     {
@@ -53,7 +55,7 @@ public class playerScript : NetworkBehaviour
 
     public override void OnStartClient()
     {
-
+        velocity = Vector3.zero;
         base.OnStartClient();
         if (hasAuthority)
         {
@@ -68,15 +70,33 @@ public class playerScript : NetworkBehaviour
             playerCreated?.Invoke(this);
 
             gameEvents.GameStateEntered.AddListener(handleStateChange);
+
+            if (!isServer)
+            {
+                Clocky.instance.SendTime += sendPlayerInputToServer;
+            }
         }
         else
         {
             tag = "EnemyPlayer";
-            gameObject.layer = 0;
+            if (isServer)
+            {
+                gameObject.layer = 6;
+            }
+            else
+            {
+                gameObject.layer = 0;
+            }
             nameTag = Instantiate(NameTagPrefab);
             nameTag.transform.SetParent(gameObject.transform);
             nameTag.transform.localPosition = Vector3.up * 1.2f;
             nameTag.GetComponent<TMPro.TMP_Text>().text = netId.ToString();
+
+            if (isServer)
+            {
+                Clocky.instance.SendTime += sendPlayerStateToClient;
+            }
+
         }
     }
 
@@ -86,6 +106,17 @@ public class playerScript : NetworkBehaviour
         if (hasAuthority)
         {
             gameEvents.GameStateEntered.RemoveListener(handleStateChange);
+            if (!isServer)
+            {
+                Clocky.instance.SendTime += sendPlayerInputToServer;
+            }
+        }
+        else
+        {
+            if (isServer)
+            {
+                Clocky.instance.SendTime -= sendPlayerStateToClient;
+            }
         }
     }
 
@@ -134,45 +165,75 @@ public class playerScript : NetworkBehaviour
     }
 
 
+
     void update(float deltaTime)
     {
-        if (hasAuthority)
+        if(hasAuthority && isServer)
         {
             Vector2 input = Inputter.Instance.playerInput.actions["Move"].ReadValue<Vector2>();
-
             movement(deltaTime, new InputSnap(input));
+        }
 
-            if (grounded)
+        if (hasAuthority)//client or host local player
+        {
+            if (!isServer)
             {
-                if (Inputter.Instance.playerInput.actions["Jump"].WasPressedThisFrame())
-                {
-                    velocity.y += 5f;
-                }
-            }
-            else
-            {
-                gNormal = Vector3.up;
-            }
-
-            if (Inputter.Instance.playerInput.actions["Respawn"].WasPressedThisFrame())
-            {
-                local_Respawn();
-            }
-
-            if (Inputter.Instance.playerInput.actions["Crouch"].IsPressed())
-            {
-                myCollider.height = 1f;
-            }
-            else
-            {
-                myCollider.height = 2f;
+                Vector2 input = Inputter.Instance.playerInput.actions["Move"].ReadValue<Vector2>();
+                inputList.Insert(0, new InputSnap(input, Clocky.instance.tick));
             }
         }
         else
         {
+            if (isServer)
+            {
+                InputSnap inputS;
+                if(inputList.Count > 0)
+                {
+                    inputS = inputList[0];
+                    inputList.RemoveAt(0);
+                }
+                else
+                {
+                    inputS = new InputSnap(Vector2.zero);
+                }
 
+                movement(deltaTime, inputS);
+            }
         }
     }
+
+
+
+
+    void sendPlayerInputToServer()
+    {
+        //Debug.Log("Sending input buffer: " + inputList.Count.ToString());
+        CMD_PlayerInput(inputList);
+        inputList.Clear();
+    }
+
+    [Command(requiresAuthority = false)]
+    void CMD_PlayerInput(List<InputSnap> _inputList)
+    {
+        if(inputList.Count > 0)
+        {
+            Debug.Log(inputList[0].moveVec.ToString());
+        }
+        inputList = _inputList;
+    }
+
+    void sendPlayerStateToClient()
+    {
+        TRPC_PlayerState(GetComponent<NetworkIdentity>().connectionToServer, new PlayerState(transform.position, velocity));
+    }
+
+    
+    [TargetRpc]
+    void TRPC_PlayerState(NetworkConnection conn, PlayerState serverState)
+    {
+        
+    }
+    
 
     public void movement(float deltaTime, InputSnap input)
     {
@@ -195,8 +256,36 @@ public class playerScript : NetworkBehaviour
 
         velocity += Vector3.ProjectOnPlane(delta * topSpeed - velocity, gNormal);
 
-        fwdInd.SetPosition(0, transform.position - transform.up * 0.5f);
-        fwdInd.SetPosition(1, fwdInd.GetPosition(0) + flatForward);
+        //fwdInd.SetPosition(0, transform.position - transform.up * 0.5f);
+        //fwdInd.SetPosition(1, fwdInd.GetPosition(0) + flatForward);
+
+        /*
+        if (grounded)
+        {
+            if (Inputter.Instance.playerInput.actions["Jump"].WasPressedThisFrame())
+            {
+                velocity.y += 5f;
+            }
+        }
+        else
+        {
+            gNormal = Vector3.up;
+        }
+
+        if (Inputter.Instance.playerInput.actions["Respawn"].WasPressedThisFrame())
+        {
+            local_Respawn();
+        }
+
+        if (Inputter.Instance.playerInput.actions["Crouch"].IsPressed())
+        {
+            myCollider.height = 1f;
+        }
+        else
+        {
+            myCollider.height = 2f;
+        }
+        */
     }
 
     public void setState(PlayerState state)
