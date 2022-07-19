@@ -357,6 +357,18 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 7807538432633192378, guid: cb281b37416ebb8489d9932698535df4, type: 3}
+--- !u!114 &131622577 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 6466841109888462818, guid: cf6e4438073e16545992691b7dc79993,
+    type: 3}
+  m_PrefabInstance: {fileID: 666555823}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 96b149f511061407fb54895c057b7736, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &176797500
 GameObject:
   m_ObjectHideFlags: 0
@@ -393,7 +405,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0.2000122, y: 0}
+  m_AnchoredPosition: {x: 0.19995117, y: 0}
   m_SizeDelta: {x: -80.09999, y: 12.26}
   m_Pivot: {x: 1, y: 1}
 --- !u!114 &176797503
@@ -1266,6 +1278,26 @@ PrefabInstance:
   m_Modification:
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 6466841109888462818, guid: cf6e4438073e16545992691b7dc79993,
+        type: 3}
+      propertyPath: unreliableLoss
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6466841109888462818, guid: cf6e4438073e16545992691b7dc79993,
+        type: 3}
+      propertyPath: reliableLatency
+      value: 0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 6466841109888462818, guid: cf6e4438073e16545992691b7dc79993,
+        type: 3}
+      propertyPath: unreliableLatency
+      value: 0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 6466841109888462818, guid: cf6e4438073e16545992691b7dc79993,
+        type: 3}
+      propertyPath: unreliableScramble
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 6466841109888462819, guid: cf6e4438073e16545992691b7dc79993,
         type: 3}
       propertyPath: m_RootOrder
@@ -1321,6 +1353,11 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 6466841109888462820, guid: cf6e4438073e16545992691b7dc79993,
+        type: 3}
+      propertyPath: transport
+      value: 
+      objectReference: {fileID: 131622577}
     - target: {fileID: 6466841109888462823, guid: cf6e4438073e16545992691b7dc79993,
         type: 3}
       propertyPath: m_Name
@@ -3836,7 +3873,7 @@ MonoBehaviour:
   syncMode: 0
   syncInterval: 0.1
   tick: 0
-  tickRate: 30
+  minTimeBetweenTicks: 0
   continueSync: 1
 --- !u!114 &2012456170
 MonoBehaviour:

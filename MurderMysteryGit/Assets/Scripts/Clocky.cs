@@ -14,31 +14,26 @@ public class Clocky : NetworkBehaviour
     [HideInInspector]
     public int tick = 0;
     private float timer = 0;
-    public float tickRate;
-    private float minTimeBetweenTicks;
+    private float tickRate = 50;
+    public float minTimeBetweenTicks;
 
     private float netTimer = 0;
-    private float netTickRate = 20;
+    private float netTickRate = 30;
     private float netMinTimeBetweenTicks;
 
     public bool continueSync = true;
 
-
     int tickAdjustment = 0;
+
+    bool readySend = false;
+
+    private float multiplier = 1;
 
     private void Awake()
     {
         instance = this;
         minTimeBetweenTicks = 1f / tickRate;
         netMinTimeBetweenTicks = 1f / netTickRate;
-        GameTick += handleGameTick;
-        SendTime += sendThings;
-    }
-
-    private void OnDestroy()
-    {
-        GameTick -= handleGameTick;
-        SendTime -= sendThings;
     }
 
     public override void OnStartClient()
@@ -46,41 +41,58 @@ public class Clocky : NetworkBehaviour
         base.OnStartClient();
         if (isClientOnly)
         {
-            CMD_TickStart(GetComponent<NetworkIdentity>());
+            CMD_TickStart();
         }
     }
 
     void Update()
     {
-        timer += Time.deltaTime;
-
-        if (tickAdjustment != 0)
+        if (!isServer)
         {
-            Debug.Log("Tick adjustment necessity detected");
-        }
+            timer += Time.deltaTime * multiplier;
+            multiplier = 1f;//RESET THE MULTIPLIER AFTER ITS ADJUSTment has taken effect
 
-        while (timer >= minTimeBetweenTicks)
-        {
-            timer -= minTimeBetweenTicks;
-
-            if(tickAdjustment >= 0)
+            while (timer >= minTimeBetweenTicks)
             {
-                while (tickAdjustment >= 0)
+                Debug.Log("adjusting tick by " + tickAdjustment.ToString());
+
+                timer -= minTimeBetweenTicks;
+
+                while (tickAdjustment > 0)
                 {
                     tick += 1;
-
                     GameTick?.Invoke(minTimeBetweenTicks);
-
                     tickAdjustment -= 1;
                 }
+
                 if (tickAdjustment < 0)
                 {
-                    tickAdjustment = 0;
+                    tickAdjustment += 1;
                 }
+                else
+                {
+                    tick += 1;
+                    GameTick?.Invoke(minTimeBetweenTicks);
+
+                    if (readySend)
+                    {
+                        requestAnotherSync();
+                    }
+                }
+
             }
-            else
+
+        }
+        else
+        {
+            timer += Time.deltaTime;
+
+            while (timer >= minTimeBetweenTicks)
             {
-                tickAdjustment += 1;
+                timer -= minTimeBetweenTicks;
+
+                tick += 1;
+                GameTick?.Invoke(minTimeBetweenTicks);
             }
         }
 
@@ -95,64 +107,51 @@ public class Clocky : NetworkBehaviour
         }
     }
 
-    void handleGameTick(float dt)
+    void requestAnotherSync()
     {
-        //local game stuff
+        CMD_SyncTick(tick - 4);
+        readySend = false;
     }
-
-    void sendThings()
-    {
-        //send things thru rpcs
-    }
-
-    float mixInts(int a, int b, float t)
-    {
-        return (1 - t) * a + t * b;
-    }
-
 
     [Command(requiresAuthority = false)]
-    public void CMD_SyncTick(NetworkIdentity id, int clientTick)
+    public void CMD_SyncTick(int clientTick, NetworkConnectionToClient conn = null)
     {
         int adjustment = tick - clientTick;
-        RPC_SyncTick(id, tick, adjustment);
+        RPC_SyncTick(conn, tick, adjustment);
     }
 
-    [ClientRpc]
-    public void RPC_SyncTick(NetworkIdentity id, int serverTick, int serverAdjustment)
+    [TargetRpc]
+    public void RPC_SyncTick(NetworkConnection conn, int serverTick, int serverAdjustment)
     {
-        if(id.netId == GetComponent<NetworkIdentity>().netId)
+        if (isClientOnly)
         {
-            if (isClientOnly)
+            if(Mathf.Abs(serverAdjustment) > 10)
             {
-                int myAdjustment = serverTick - tick;
-                int avgAdjustment = (int)mixInts(serverAdjustment, myAdjustment, 0.5f);
-                tickAdjustment = avgAdjustment;
-
-                if (continueSync)
-                {
-                    CMD_SyncTick(id, tick);
-                    Debug.Log("Sending again! " + myAdjustment.ToString() + " " + serverAdjustment.ToString() + " " + avgAdjustment.ToString());
-                }
+                tickAdjustment = serverAdjustment;
             }
+            else
+            {
+                multiplier = (float)Math.Tanh(tickAdjustment / 6d) + 1;// SMOOTHLY APPLY AN ADJUSTMENT TO THE LOCAL CLOCK - MAYBE A SIMPLER WAY IS BETTER
+            }
+
+            readySend = true;
         }
     }
 
     [Command(requiresAuthority = false)]
-    public void CMD_TickStart(NetworkIdentity id)
+    public void CMD_TickStart(NetworkConnectionToClient conn = null)
     {
-        RPC_TickStart(id, tick);
+        RPC_TickStart(conn, tick);
     }
 
-    [ClientRpc]
-    public void RPC_TickStart(NetworkIdentity id, int serverTick)
+    [TargetRpc]
+    public void RPC_TickStart(NetworkConnection conn, int serverTick)
     {
-        if(id.netId == GetComponent<NetworkIdentity>().netId)
-        {
-            tick = serverTick + 5;
+        tick = serverTick + 5;
 
-            CMD_SyncTick(id, tick);
-        }
+        CMD_SyncTick(tick);
+
+        readySend = true;
     }
-    
+
 }

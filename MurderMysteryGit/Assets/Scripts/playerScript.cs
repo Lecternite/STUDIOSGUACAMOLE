@@ -38,7 +38,12 @@ public class playerScript : NetworkBehaviour
     public bool imposter = false;
 
     List<InputSnap> inputList = new List<InputSnap>();
-    List<PlayerState> stateList = new List<PlayerState>();
+
+    bool jumped = false;
+
+
+    InputSnap[] clntPrdctnBffr = new InputSnap[100];
+
 
     public void Awake()
     {
@@ -164,50 +169,64 @@ public class playerScript : NetworkBehaviour
         Debug.Log(state.ToString());
     }
 
-
+    private void Update()
+    {
+        jumped = Inputter.Instance.playerInput.actions["Jump"].WasPressedThisFrame() || jumped;
+    }
 
     void update(float deltaTime)
     {
-        if(hasAuthority && isServer)
+        if(hasAuthority && isServer)//HOST LOCAL PLAYER
         {
             Vector2 input = Inputter.Instance.playerInput.actions["Move"].ReadValue<Vector2>();
-            movement(deltaTime, new InputSnap(input));
+            movement(deltaTime, new InputSnap(input, 0, Camera.main.transform.right, jumped));
         }
 
-        if (hasAuthority)//client or host local player
+        if(hasAuthority && !isServer)//CLIENT LOCAL PLAYER
         {
-            if (!isServer)
-            {
-                Vector2 input = Inputter.Instance.playerInput.actions["Move"].ReadValue<Vector2>();
-                inputList.Insert(0, new InputSnap(input, Clocky.instance.tick));
-            }
+            Vector2 input = Inputter.Instance.playerInput.actions["Move"].ReadValue<Vector2>();
+            InputSnap currentSnap = new InputSnap(input, Clocky.instance.tick, Camera.main.transform.right, jumped);
+            inputList.Add(currentSnap);
+            clntPrdctnBffr[Clocky.instance.tick % 100] = currentSnap;
+            movement(deltaTime, currentSnap);
         }
-        else
+
+        if(!hasAuthority && isServer)//SERVER PLAYER
         {
-            if (isServer)
+            InputSnap inputS = new InputSnap(Vector3.zero);
+
+            //Parse through the input buffer to get the one corresponding to this tick if there is one
+            while (inputList.Count > 0)//drop every late tick
             {
-                InputSnap inputS;
-                if(inputList.Count > 0)
+                if (inputList[0].tick < Clocky.instance.tick)
                 {
-                    inputS = inputList[0];
+                    Debug.Log("Input dropped, tick offset: " + (Clocky.instance.tick - inputList[0].tick).ToString() + Time.deltaTime.ToString());
                     inputList.RemoveAt(0);
                 }
                 else
                 {
-                    inputS = new InputSnap(Vector2.zero);
+                    break;
                 }
-
-                movement(deltaTime, inputS);
             }
+            if (inputList.Count > 0)
+            {
+                if (inputList[0].tick == Clocky.instance.tick)
+                {
+                    inputS = inputList[0];
+                    inputList.RemoveAt(0);
+                }
+            }
+
+            movement(deltaTime, inputS);
+
         }
+
+        jumped = false;
     }
-
-
 
 
     void sendPlayerInputToServer()
     {
-        //Debug.Log("Sending input buffer: " + inputList.Count.ToString());
         CMD_PlayerInput(inputList);
         inputList.Clear();
     }
@@ -215,22 +234,31 @@ public class playerScript : NetworkBehaviour
     [Command(requiresAuthority = false)]
     void CMD_PlayerInput(List<InputSnap> _inputList)
     {
-        if(inputList.Count > 0)
+        for(int i = 0; i < _inputList.Count; i++)
         {
-            Debug.Log(inputList[0].moveVec.ToString());
+            inputList.Add(_inputList[i]);
         }
-        inputList = _inputList;
     }
 
     void sendPlayerStateToClient()
     {
-        TRPC_PlayerState(GetComponent<NetworkIdentity>().connectionToServer, new PlayerState(transform.position, velocity));
+        TRPC_PlayerState(GetComponent<NetworkIdentity>().connectionToServer, new PlayerState(transform.position, velocity, Clocky.instance.tick, gNormal, grounded));
     }
 
     
     [TargetRpc]
     void TRPC_PlayerState(NetworkConnection conn, PlayerState serverState)
     {
+        
+        transform.position = serverState.position;
+        velocity = serverState.velocity;
+        gNormal = serverState.gNormal;
+        grounded = serverState.grounded;
+
+        for(int i = serverState.tick + 1; i <= Clocky.instance.tick; i++)
+        {
+            movement(Clocky.instance.minTimeBetweenTicks, clntPrdctnBffr[i % 100]);
+        }
         
     }
     
@@ -247,7 +275,7 @@ public class playerScript : NetworkBehaviour
 
         inputVec = Vector3.ClampMagnitude(inputVec, 1f);
 
-        Vector3 flatRight = Vector3.ProjectOnPlane(Camera.main.transform.right, gNormal).normalized;
+        Vector3 flatRight = Vector3.ProjectOnPlane(input.camTransform, gNormal).normalized;
         Vector3 flatForward = Vector3.Cross(flatRight, gNormal).normalized;
 
         Vector3 delta = flatRight * inputVec.x + flatForward * inputVec.y;
@@ -259,10 +287,10 @@ public class playerScript : NetworkBehaviour
         //fwdInd.SetPosition(0, transform.position - transform.up * 0.5f);
         //fwdInd.SetPosition(1, fwdInd.GetPosition(0) + flatForward);
 
-        /*
+        
         if (grounded)
         {
-            if (Inputter.Instance.playerInput.actions["Jump"].WasPressedThisFrame())
+            if (input.jumped)
             {
                 velocity.y += 5f;
             }
@@ -271,7 +299,7 @@ public class playerScript : NetworkBehaviour
         {
             gNormal = Vector3.up;
         }
-
+        /*
         if (Inputter.Instance.playerInput.actions["Respawn"].WasPressedThisFrame())
         {
             local_Respawn();
