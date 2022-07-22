@@ -27,7 +27,15 @@ public class Clocky : NetworkBehaviour
 
     bool readySend = false;
 
-    private float multiplier = 1;
+    private float multiplier = 1f;
+
+    int tickWrongness = 0;
+
+    int intendedOffsetFromServer = 4;
+
+    float resendTimer = 0;
+
+    float multiplierTimer = 0f;
 
     private void Awake()
     {
@@ -49,13 +57,22 @@ public class Clocky : NetworkBehaviour
     {
         if (!isServer)
         {
+            multiplierTimer = Mathf.Max(-0.0001f, multiplierTimer - Time.deltaTime);
+            if (multiplierTimer <= 0)
+            {
+                multiplier = 1f;
+                Debug.Log("multiplier timer ran out");
+            }
+
             timer += Time.deltaTime * multiplier;
-            multiplier = 1f;//RESET THE MULTIPLIER AFTER ITS ADJUSTment has taken effect
+
+           // multiplier = 1f;//RESET THE MULTIPLIER AFTER ITS ADJUSTment has taken effect
+
+            resendTimer = Mathf.Max(-0.001f, resendTimer - Time.deltaTime);//Cool down for sending clock sync messages
+
 
             while (timer >= minTimeBetweenTicks)
             {
-                Debug.Log("adjusting tick by " + tickAdjustment.ToString());
-
                 timer -= minTimeBetweenTicks;
 
                 while (tickAdjustment > 0)
@@ -74,14 +91,12 @@ public class Clocky : NetworkBehaviour
                     tick += 1;
                     GameTick?.Invoke(minTimeBetweenTicks);
 
-                    if (readySend)
+                    if (readySend && (resendTimer <= 0 || tickWrongness > 9))
                     {
                         requestAnotherSync();
                     }
                 }
-
             }
-
         }
         else
         {
@@ -96,7 +111,7 @@ public class Clocky : NetworkBehaviour
             }
         }
 
-
+        // This clock tells the program when to send messages
         netTimer += Time.deltaTime;
 
         while (netTimer >= netMinTimeBetweenTicks)
@@ -109,7 +124,7 @@ public class Clocky : NetworkBehaviour
 
     void requestAnotherSync()
     {
-        CMD_SyncTick(tick - 4);
+        CMD_SyncTick(tick - intendedOffsetFromServer);// the minus four keeps the client tick about 4 ticks ahead of the server tick
         readySend = false;
     }
 
@@ -125,16 +140,32 @@ public class Clocky : NetworkBehaviour
     {
         if (isClientOnly)
         {
-            if(Mathf.Abs(serverAdjustment) > 10)
+            if(Math.Abs(serverAdjustment) > 10)
             {
-                tickAdjustment = serverAdjustment;
+                tick += serverAdjustment;
+                Debug.Log("tick is being directly adjusted by: " + serverAdjustment.ToString());
             }
             else
             {
-                multiplier = (float)Math.Tanh(tickAdjustment / 6d) + 1;// SMOOTHLY APPLY AN ADJUSTMENT TO THE LOCAL CLOCK - MAYBE A SIMPLER WAY IS BETTER
+                if (Math.Abs(serverAdjustment) > 3)
+                {
+                    tickAdjustment = serverAdjustment;
+
+                }
+                else
+                {
+                    multiplier = (serverAdjustment / (25f * tickRate) + 1f);
+                    multiplierTimer = 5f;
+                }
+                Debug.Log("server said move by: " + serverAdjustment.ToString() + " | multiplier: " + multiplier.ToString());
             }
 
+            tickWrongness = serverAdjustment;
+
+
             readySend = true;
+
+            resendTimer = 10f;
         }
     }
 
@@ -153,5 +184,4 @@ public class Clocky : NetworkBehaviour
 
         readySend = true;
     }
-
 }

@@ -103,6 +103,10 @@ public class playerScript : NetworkBehaviour
             }
 
         }
+        if (isServer)
+        {
+            Clocky.instance.SendTime += handleServerSendTime;
+        }
     }
 
     public override void OnStopClient()
@@ -122,6 +126,10 @@ public class playerScript : NetworkBehaviour
             {
                 Clocky.instance.SendTime -= sendPlayerStateToClient;
             }
+        }
+        if (isServer)
+        {
+            Clocky.instance.SendTime -= handleServerSendTime;
         }
     }
 
@@ -224,6 +232,20 @@ public class playerScript : NetworkBehaviour
         jumped = false;
     }
 
+    
+    void handleServerSendTime()
+    {
+        RPC_SyncPositionToClients(netIdentity, transform.position);
+    }
+
+    [ClientRpc]
+    void RPC_SyncPositionToClients(NetworkIdentity myId, Vector3 _position)
+    {
+        if (!myId.hasAuthority)
+        {
+            transform.position = _position;
+        }
+    }
 
     void sendPlayerInputToServer()
     {
@@ -244,7 +266,6 @@ public class playerScript : NetworkBehaviour
     {
         TRPC_PlayerState(GetComponent<NetworkIdentity>().connectionToServer, new PlayerState(transform.position, velocity, Clocky.instance.tick, gNormal, grounded));
     }
-
     
     [TargetRpc]
     void TRPC_PlayerState(NetworkConnection conn, PlayerState serverState)
@@ -261,7 +282,6 @@ public class playerScript : NetworkBehaviour
         }
         
     }
-    
 
     public void movement(float deltaTime, InputSnap input)
     {
@@ -314,12 +334,6 @@ public class playerScript : NetworkBehaviour
             myCollider.height = 2f;
         }
         */
-    }
-
-    public void setState(PlayerState state)
-    {
-        transform.position = state.position;
-        velocity = state.velocity;
     }
 
     void gunIsDropped()
