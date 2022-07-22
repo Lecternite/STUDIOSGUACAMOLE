@@ -37,6 +37,9 @@ public class Clocky : NetworkBehaviour
 
     float multiplierTimer = 0f;
 
+    float averageCorrection = 0f;
+    int averageCount = 0;
+
     private void Awake()
     {
         instance = this;
@@ -49,7 +52,7 @@ public class Clocky : NetworkBehaviour
         base.OnStartClient();
         if (isClientOnly)
         {
-            CMD_TickStart();
+            CMD_TickStart(tick - intendedOffsetFromServer);
         }
     }
 
@@ -61,7 +64,6 @@ public class Clocky : NetworkBehaviour
             if (multiplierTimer <= 0)
             {
                 multiplier = 1f;
-                Debug.Log("multiplier timer ran out");
             }
 
             timer += Time.deltaTime * multiplier;
@@ -91,7 +93,7 @@ public class Clocky : NetworkBehaviour
                     tick += 1;
                     GameTick?.Invoke(minTimeBetweenTicks);
 
-                    if (readySend && (resendTimer <= 0 || tickWrongness > 9))
+                    if (readySend && ((resendTimer <= 0f && multiplierTimer <= 0f) || tickWrongness > 9))
                     {
                         requestAnotherSync();
                     }
@@ -140,45 +142,50 @@ public class Clocky : NetworkBehaviour
     {
         if (isClientOnly)
         {
-            if(Math.Abs(serverAdjustment) > 10)
+            Debug.Log("synctick");
+            if (Math.Abs(serverAdjustment) > 10)
             {
                 tick += serverAdjustment;
                 Debug.Log("tick is being directly adjusted by: " + serverAdjustment.ToString());
             }
             else
             {
-                if (Math.Abs(serverAdjustment) > 3)
+                if (averageCount < 15)
                 {
-                    tickAdjustment = serverAdjustment;
-
+                    averageCorrection += serverAdjustment;
+                    averageCount += 1;
+                    Debug.Log("Current average: " + (averageCorrection / averageCount).ToString());
                 }
                 else
                 {
-                    multiplier = (serverAdjustment / (25f * tickRate) + 1f);
-                    multiplierTimer = 5f;
+                    averageCorrection /= averageCount;
+                    multiplier = (averageCorrection / (8f * tickRate) + 1f);
+                    multiplierTimer = 7f;
+                    Debug.Log("The average was: " + averageCorrection.ToString() + " | multiplier: " + multiplier.ToString());
+                    averageCount = 0;
+                    averageCorrection = 0f;
                 }
-                Debug.Log("server said move by: " + serverAdjustment.ToString() + " | multiplier: " + multiplier.ToString());
             }
-
-            tickWrongness = serverAdjustment;
-
 
             readySend = true;
 
-            resendTimer = 10f;
+            resendTimer = 0.5f;
         }
     }
 
     [Command(requiresAuthority = false)]
-    public void CMD_TickStart(NetworkConnectionToClient conn = null)
+    public void CMD_TickStart(int clientTick, NetworkConnectionToClient conn = null)
     {
-        RPC_TickStart(conn, tick);
+        int adjustment = tick - clientTick;
+        RPC_TickStart(conn, tick, adjustment);
     }
 
     [TargetRpc]
-    public void RPC_TickStart(NetworkConnection conn, int serverTick)
+    public void RPC_TickStart(NetworkConnection conn, int serverTick, int adjustment)
     {
-        tick = serverTick + 5;
+        //tick = serverTick + 5;
+        Debug.Log("START offset: " + adjustment.ToString());
+        tick += adjustment;
 
         CMD_SyncTick(tick);
 

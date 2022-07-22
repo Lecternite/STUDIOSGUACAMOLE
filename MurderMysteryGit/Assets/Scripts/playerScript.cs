@@ -232,7 +232,6 @@ public class playerScript : NetworkBehaviour
         jumped = false;
     }
 
-    
     void handleServerSendTime()
     {
         RPC_SyncPositionToClients(netIdentity, transform.position);
