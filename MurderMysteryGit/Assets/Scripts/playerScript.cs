@@ -42,7 +42,7 @@ public class playerScript : NetworkBehaviour
     bool jumped = false;
 
 
-    InputSnap[] clntPrdctnBffr = new InputSnap[100];
+    InputSnap[] clientInputBuffer = new InputSnap[100];
 
 
     public void Awake()
@@ -74,12 +74,9 @@ public class playerScript : NetworkBehaviour
 
             playerCreated?.Invoke(this);
 
+            //Subscribe to client plaeyr events
             gameEvents.GameStateEntered.AddListener(handleStateChange);
-
-            if (!isServer)
-            {
-                Clocky.instance.SendTime += sendPlayerInputToServer;
-            }
+            Clocky.instance.SendTime += sendPlayerInputToServer;
         }
         else
         {
@@ -97,11 +94,6 @@ public class playerScript : NetworkBehaviour
             nameTag.transform.localPosition = Vector3.up * 1.2f;
             nameTag.GetComponent<TMPro.TMP_Text>().text = netId.ToString();
         }
-        if (isServer)
-        {
-            Clocky.instance.SendTime += handleServerSendTime;
-            Clocky.instance.SendTime += sendPlayerStateToClient;
-        }
     }
 
     public override void OnStopClient()
@@ -109,15 +101,32 @@ public class playerScript : NetworkBehaviour
         base.OnStopClient();
         if (hasAuthority)
         {
+            //Unsubscribe to client player events
             gameEvents.GameStateEntered.RemoveListener(handleStateChange);
-            if (!isServer)
-            {
-                Clocky.instance.SendTime += sendPlayerInputToServer;
-            }
+            Clocky.instance.SendTime += sendPlayerInputToServer;
         }
-        if (isServer)
+    }
+
+    public override void OnStartServer()
+    {
+        base.OnStartServer();
+
+        Clocky.instance.SendTime += handleServerSendTime;
+
+        if (!hasAuthority)
         {
-            Clocky.instance.SendTime -= handleServerSendTime;
+            Clocky.instance.SendTime += sendPlayerStateToClient;
+        }
+    }
+
+    public override void OnStopServer()
+    {
+        base.OnStopServer();
+
+        Clocky.instance.SendTime -= handleServerSendTime;
+
+        if (!hasAuthority)
+        {
             Clocky.instance.SendTime -= sendPlayerStateToClient;
         }
     }
@@ -184,7 +193,7 @@ public class playerScript : NetworkBehaviour
             Vector2 input = Inputter.Instance.playerInput.actions["Move"].ReadValue<Vector2>();
             InputSnap currentSnap = new InputSnap(input, Clocky.instance.tick, Camera.main.transform.right, jumped);
             inputList.Add(currentSnap);
-            clntPrdctnBffr[Clocky.instance.tick % 100] = currentSnap;
+            clientInputBuffer[Clocky.instance.tick % 100] = currentSnap;
             movement(deltaTime, currentSnap);
         }
 
@@ -266,7 +275,7 @@ public class playerScript : NetworkBehaviour
 
         for(int i = serverState.tick + 1; i <= Clocky.instance.tick; i++)
         {
-            movement(Clocky.instance.minTimeBetweenTicks, clntPrdctnBffr[i % 100]);
+            movement(Clocky.instance.minTimeBetweenTicks, clientInputBuffer[i % 100]);
         }
         
     }

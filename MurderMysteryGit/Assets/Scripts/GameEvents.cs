@@ -75,14 +75,8 @@ public class GameEvents : NetworkBehaviour
         }
     }
 
-    [Command(requiresAuthority = false)]
-    void server_invokeStart(GameState state)
-    {
-        client_invokeStart(state);
-    }
-
     [ClientRpc]
-    void client_invokeStart(GameState state)
+    void RPC_EnterGameState(GameState state)
     {
         client_EnterGameState(GameState.gracePeriod);
     }
@@ -125,7 +119,7 @@ public class GameEvents : NetworkBehaviour
 
             if (numReady >= NetworkServer.connections.Count && gameState == GameState.waitingForPlayers)
             {
-                server_invokeStart(GameState.gracePeriod);
+                RPC_EnterGameState(GameState.gracePeriod);
             }
 
             switch (gameState)
