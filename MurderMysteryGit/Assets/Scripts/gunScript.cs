@@ -150,7 +150,6 @@ public class gunScript : MonoBehaviour
             transform.position = Camera.main.transform.TransformPoint(Vector3.Lerp(defaultPos + offset, scopedPos, v));
             Quaternion tilt = Quaternion.AngleAxis(recoil, Vector3.left);
             transform.rotation = Camera.main.transform.localToWorldMatrix.rotation * tilt;
-
         }
     }
 

@@ -96,16 +96,11 @@ public class playerScript : NetworkBehaviour
             nameTag.transform.SetParent(gameObject.transform);
             nameTag.transform.localPosition = Vector3.up * 1.2f;
             nameTag.GetComponent<TMPro.TMP_Text>().text = netId.ToString();
-
-            if (isServer)
-            {
-                Clocky.instance.SendTime += sendPlayerStateToClient;
-            }
-
         }
         if (isServer)
         {
             Clocky.instance.SendTime += handleServerSendTime;
+            Clocky.instance.SendTime += sendPlayerStateToClient;
         }
     }
 
@@ -120,16 +115,10 @@ public class playerScript : NetworkBehaviour
                 Clocky.instance.SendTime += sendPlayerInputToServer;
             }
         }
-        else
-        {
-            if (isServer)
-            {
-                Clocky.instance.SendTime -= sendPlayerStateToClient;
-            }
-        }
         if (isServer)
         {
             Clocky.instance.SendTime -= handleServerSendTime;
+            Clocky.instance.SendTime -= sendPlayerStateToClient;
         }
     }
 
@@ -208,7 +197,7 @@ public class playerScript : NetworkBehaviour
             {
                 if (inputList[0].tick < Clocky.instance.tick)
                 {
-                    Debug.Log("Input dropped, tick offset: " + (Clocky.instance.tick - inputList[0].tick).ToString() + Time.deltaTime.ToString());
+                    Debug.Log("Input dropped, tick offset: " + (Clocky.instance.tick - inputList[0].tick).ToString());
                     inputList.RemoveAt(0);
                 }
                 else
@@ -263,7 +252,7 @@ public class playerScript : NetworkBehaviour
 
     void sendPlayerStateToClient()
     {
-        TRPC_PlayerState(GetComponent<NetworkIdentity>().connectionToServer, new PlayerState(transform.position, velocity, Clocky.instance.tick, gNormal, grounded));
+        TRPC_PlayerState(GetComponent<NetworkIdentity>().connectionToClient, new PlayerState(transform.position, velocity, Clocky.instance.tick, gNormal, grounded));
     }
     
     [TargetRpc]

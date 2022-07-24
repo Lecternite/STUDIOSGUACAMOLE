@@ -163,5 +163,4 @@ public class GameEvents : NetworkBehaviour
     {
         return NetworkServer.connections.Count.ToString();
     }
-
 }

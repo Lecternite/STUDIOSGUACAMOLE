@@ -60,15 +60,13 @@ public class Clocky : NetworkBehaviour
     {
         if (!isServer)
         {
-            multiplierTimer = Mathf.Max(-0.0001f, multiplierTimer - Time.deltaTime);
+            multiplierTimer = Mathf.Max(-0.0001f, multiplierTimer - Time.deltaTime);//Limit the multiplier tick adjusment to this timer
             if (multiplierTimer <= 0)
             {
                 multiplier = 1f;
             }
 
             timer += Time.deltaTime * multiplier;
-
-           // multiplier = 1f;//RESET THE MULTIPLIER AFTER ITS ADJUSTment has taken effect
 
             resendTimer = Mathf.Max(-0.001f, resendTimer - Time.deltaTime);//Cool down for sending clock sync messages
 
@@ -126,7 +124,7 @@ public class Clocky : NetworkBehaviour
 
     void requestAnotherSync()
     {
-        CMD_SyncTick(tick - intendedOffsetFromServer);// the minus four keeps the client tick about 4 ticks ahead of the server tick
+        CMD_SyncTick(tick - intendedOffsetFromServer);
         readySend = false;
     }
 
@@ -150,7 +148,7 @@ public class Clocky : NetworkBehaviour
             }
             else
             {
-                if (averageCount < 15)
+                if (averageCount < 20)
                 {
                     averageCorrection += serverAdjustment;
                     averageCount += 1;
@@ -159,8 +157,8 @@ public class Clocky : NetworkBehaviour
                 else
                 {
                     averageCorrection /= averageCount;
-                    multiplier = (averageCorrection / (8f * tickRate) + 1f);
-                    multiplierTimer = 7f;
+                    multiplier = (averageCorrection / (11f * tickRate) + 1f);
+                    multiplierTimer = 9f;
                     Debug.Log("The average was: " + averageCorrection.ToString() + " | multiplier: " + multiplier.ToString());
                     averageCount = 0;
                     averageCorrection = 0f;

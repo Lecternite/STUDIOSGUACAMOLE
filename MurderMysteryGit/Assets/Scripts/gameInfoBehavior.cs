@@ -2,7 +2,6 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using TMPro;
-using Mirror;
 
 public class gameInfoBehavior : MonoBehaviour
 {
@@ -21,8 +20,9 @@ public class gameInfoBehavior : MonoBehaviour
 
     void setPlayer(playerScript _player)
     {
-        player = _player;
         playerScript.playerCreated -= setPlayer;
+
+        player = _player;
     }
 
     void Update()
@@ -34,8 +34,9 @@ public class gameInfoBehavior : MonoBehaviour
                 imposter = "Imposter";
             }
         }
-
-        tm.text = "Tick: " + Clocky.instance.tick.ToString() + " | " + gameEvents.gameState.ToString() + " | " + gameEvents.getNumPlayers() + " | " + gameEvents.numReady.ToString() + " | " + imposter;
-;
+        if(Clocky.instance != null && gameEvents != null)
+        {
+            tm.text = "Tick: " + Clocky.instance.tick.ToString() + " | " + gameEvents.gameState.ToString() + " | " + gameEvents.getNumPlayers() + " | " + gameEvents.numReady.ToString() + " | " + imposter;
+        }
     }
 }
