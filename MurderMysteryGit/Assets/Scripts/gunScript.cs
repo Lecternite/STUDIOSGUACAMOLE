@@ -179,7 +179,7 @@ public class gunScript : NetworkBehaviour
         playerShotThisFrame = Inputter.Instance.playerInput.actions["Fire"].WasPressedThisFrame() || playerShotThisFrame;
     }
 
-    void processRay(RayCommand rc)
+    void processRay(RayCommand rayCommand)
     {
         /*
         RaycastHit hit;
@@ -203,19 +203,17 @@ public class gunScript : NetworkBehaviour
         */
 
         //int tick = EntityHistory.Instance.GetClosestMatch(lagEntityPosition);
-        int tick = (int)rc.lagState;
+        int tick = (int)rayCommand.lagState;
         
         RaycastHit hit;
-        if(EntityHistory.Instance.RayPast(tick, rc.ray, 100f, out hit))
+        if(EntityHistory.Instance.RayPast(tick, rayCommand.ray, 100f, out hit))
         {
             if (hit.collider.gameObject.tag == "Lag Tester")
             {
-                hit.collider.gameObject.GetComponent<EntityLagTesterScript>().Indicate();
+                hit.collider.gameObject.GetComponent<EntityLagTesterScript>().RPC_Indicate();
             }
             Instantiate(spark, hit.point, Quaternion.FromToRotation(Vector3.forward, hit.normal));
         }
-
-
     }
 
     void update(float deltaTime)

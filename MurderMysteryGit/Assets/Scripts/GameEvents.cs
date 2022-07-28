@@ -32,17 +32,9 @@ public class GameEvents : NetworkBehaviour
     #region RPC
 
     [Command(requiresAuthority = false)]
-    public void server_EnterGameState(GameState _gameState)
+    public void CMD_EnterGameState(GameState _gameState)
     {
-        client_EnterGameState(_gameState);
-    }
-
-    [ClientRpc]
-    public void client_EnterGameState(GameState _gameState)
-    {
-        GameStateExited?.Invoke(gameState);
-        gameState = _gameState;
-        GameStateEntered?.Invoke(gameState);
+        RPC_EnterGameState(_gameState);
     }
 
 
@@ -83,7 +75,9 @@ public class GameEvents : NetworkBehaviour
     [ClientRpc]
     void RPC_EnterGameState(GameState state)
     {
-        client_EnterGameState(GameState.gracePeriod);
+        GameStateExited?.Invoke(gameState);
+        gameState = state;
+        GameStateEntered?.Invoke(gameState);
     }
 
     [Command(requiresAuthority = false)]
@@ -110,7 +104,6 @@ public class GameEvents : NetworkBehaviour
             Clocky.instance.SendTime += sendStateToClient;
         }
     }
-
 
     void sendStateToClient()
     {
@@ -167,12 +160,7 @@ public class GameEvents : NetworkBehaviour
             iter += 1;
         }
 
-        client_EnterGameState(GameState.murderMystery);
-    }
-
-    public void setUserName(string name)
-    {
-        playerUserName = name;
+        RPC_EnterGameState(GameState.murderMystery);
     }
 
     public string getNumPlayers()

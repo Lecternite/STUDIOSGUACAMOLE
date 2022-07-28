@@ -10,21 +10,21 @@ public class EntityLagTesterScript : NetworkBehaviour
 
     private void Start()
     {
+        startingPos = transform.position;
+
         Clocky.instance.GameTick += update;
         if (isServer)
         {
             Clocky.instance.SendTime += handleSendTime;
+            EntityHistory.Instance.trackedEntities.Add(gameObject);
         }
-        startingPos = transform.position;
-
-        EntityHistory.Instance.trackedEntities.Add(gameObject);
     }
 
     void update(float deltaTime)
     {
         if (isServer)
         {
-            transform.position = startingPos + new Vector3(Mathf.Cos(Clocky.instance.tick * 0.03f) * 2f, 0, Mathf.Sin(Clocky.instance.tick * 0.03f) * 4f);
+            transform.position = startingPos + new Vector3(Mathf.Cos(Clocky.instance.tick * 0.03f) * 2f, 0, Mathf.Sin(Clocky.instance.tick * 0.03f) * 6f);
         }
     }
 
@@ -43,7 +43,7 @@ public class EntityLagTesterScript : NetworkBehaviour
     }
 
     [ClientRpc]
-    public void Indicate()
+    public void RPC_Indicate()
     {
         Vector3 c = (Random.insideUnitSphere + Vector3.one) / 2f;
         GetComponent<MeshRenderer>().material.color = new Color(c.x, c.y, c.z);
