@@ -13,6 +13,7 @@ GameObject:
   - component: {fileID: 5894035735537159285}
   - component: {fileID: 5046925393678502520}
   - component: {fileID: 5046925393678502523}
+  - component: {fileID: 1033940670109100245}
   m_Layer: 0
   m_Name: gun
   m_TagString: GunCollectible
@@ -110,5 +111,26 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 70cc5a7cdef068e4e87288b12d5144aa, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  syncMode: 0
+  syncInterval: 0.1
+  cubePrefab: {fileID: 3255319718747775255, guid: e18fe8beeab6941499e60120f6a01421,
+    type: 3}
   pointer: {fileID: 0}
   spark: {fileID: 5377803485206404089, guid: 78e7c2effe1248e4399ca962ef71924b, type: 3}
+--- !u!114 &1033940670109100245
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5389452189356338592}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9b91ecbcc199f4492b9a91e820070131, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  sceneId: 0
+  serverOnly: 0
+  visible: 0
+  m_AssetId: 11b2216233fc03e4bbc2ef1089c566d2
+  hasSpawned: 0

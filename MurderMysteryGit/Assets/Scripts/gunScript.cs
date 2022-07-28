@@ -3,9 +3,12 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using System;
+using Mirror;
 
-public class gunScript : MonoBehaviour
+public class gunScript : NetworkBehaviour
 {
+    public GameObject cubePrefab;
+
     Vector3 defaultPos = new Vector3(0.4f, -0.25f, 0.3f);
     Vector3 scopedPos = new Vector3(0f, -0.175f, 0.4f);
 
@@ -19,10 +22,6 @@ public class gunScript : MonoBehaviour
     ParticleSystem spark;
 
     float recoil = 0;
-
-    int layerMask;
-
-    int mode = 0;
 
     Vector3 startPos;
     Quaternion startRot;
@@ -40,15 +39,42 @@ public class gunScript : MonoBehaviour
 
     Vector3 offset;
 
+    bool playerShotThisFrame = false;
+
+    GameEvents gameEvents;
+
+    public struct RayCommand
+    {
+        public Ray ray;
+        public int tick;
+        public float lagState;
+        public RayCommand(Ray _ray, int _tick, float _lagState)
+        {
+            ray = _ray;
+            tick = _tick;
+            lagState = _lagState;
+        }
+    }
+
+    public enum GunState
+    {
+        Idle,
+        TransitioningToHeld,
+        Held,
+    }
+
+    GunState mode = GunState.Idle;
+
+    public static List<RayCommand> rayCmdList = new List<RayCommand>();
 
     private void Awake()
     {
-        layerMask = ~(1 << 6);
         col = GetComponent<SphereCollider>();
         camScript = FindObjectOfType<cameraScript>();
         camScript.cameraUpdated += OnCamUpdate;
         pointer = GameObject.FindGameObjectWithTag("CrossHair").GetComponent<Image>();
     }
+
     private void OnDestroy()
     {
         camScript.cameraUpdated -= OnCamUpdate;
@@ -56,9 +82,9 @@ public class gunScript : MonoBehaviour
 
     public void collect(ref bool canpickup)
     {
-        if (cooldown < 0.001f)
+        if (cooldown < 0.001f) 
         {
-            mode = 1;
+            mode = GunState.TransitioningToHeld;
             startPos = transform.position;
             startRot = transform.rotation;
             startTime = Time.time;
@@ -79,21 +105,21 @@ public class gunScript : MonoBehaviour
 
     private void OnCamUpdate()
     {
-        if(mode == 0)
+        if(mode == GunState.Idle)
         {
             return;
         }
-        else if(mode == 1)
+        else if(mode == GunState.TransitioningToHeld)
         {
             float t = (Time.time - startTime) * 5f;
             transform.position = Vector3.Lerp(startPos, Camera.main.transform.TransformPoint(Vector3.Lerp(defaultPos, scopedPos, v)), t);
             transform.rotation = Quaternion.Slerp(startRot, Camera.main.transform.localToWorldMatrix.rotation, t);
             if (t > 1f)
             {
-                mode = 2;
+                mode = GunState.Held;
             }
         }
-        else
+        else if(mode == GunState.Held)
         {
             if (Inputter.Instance.playerInput.actions["Drop"].WasPressedThisFrame())
             {
@@ -113,26 +139,8 @@ public class gunScript : MonoBehaviour
             v = Mathf.Sin(Mathf.PI * value / 2f);
 
 
-            if (Inputter.Instance.playerInput.actions["Fire"].WasPressedThisFrame())
-            {
-                recoil = 70;
-                RaycastHit hit;
-                if (Physics.Raycast(Camera.main.transform.position, Camera.main.transform.forward, out hit, 100f, layerMask))
-                {
-                    if (hit.rigidbody != null)
-                    {
-                        hit.rigidbody.AddForceAtPosition(Camera.main.transform.forward * 5f, hit.point, ForceMode.Impulse);
-                    }
-                    if (hit.collider.gameObject.tag == "EnemyPlayer")
-                    {
-                        hit.collider.gameObject.GetComponent<playerScript>().toserver_Respawn();
-                    }
-                    Instantiate(spark, hit.point, Quaternion.FromToRotation(Vector3.forward, hit.normal));
-                }
-            }
             recoil -= 300 * Time.deltaTime;
             recoil = Mathf.Max(0f, recoil);
-
 
             Camera.main.fieldOfView = Mathf.Lerp(80f, 50f, v);
             pointer.color = new Color(pointer.color.r, pointer.color.g, pointer.color.b, 1f - v);
@@ -153,8 +161,105 @@ public class gunScript : MonoBehaviour
         }
     }
 
+    [Command(requiresAuthority = false)]
+    void CMD_Shoot(Ray ray, int tick, float lagState)
+    {
+        rayCmdList.Add(new RayCommand(ray, tick, lagState));
+    }
+
+    private void Start()
+    {
+        Clocky.instance.GameTick += update;
+        gameEvents = FindObjectOfType<GameEvents>();
+    }
+
     private void Update()
     {
         cooldown = Mathf.Clamp01(cooldown - Time.deltaTime);
+        playerShotThisFrame = Inputter.Instance.playerInput.actions["Fire"].WasPressedThisFrame() || playerShotThisFrame;
+    }
+
+    void processRay(RayCommand rc)
+    {
+        /*
+        RaycastHit hit;
+        if (Physics.Raycast(ray, out hit, 100f))
+        {
+            
+            if (hit.rigidbody != null)
+            {
+                hit.rigidbody.AddForceAtPosition(Camera.main.transform.forward * 5f, hit.point, ForceMode.Impulse);
+            }
+            if (hit.collider.gameObject.tag == "Player")
+            {
+                hit.collider.gameObject.GetComponent<playerScript>().Respawn();
+            }
+            else if(hit.collider.gameObject.tag == "Lag Tester")
+            {
+                hit.collider.gameObject.GetComponent<EntityLagTesterScript>().Indicate();
+            }
+            Instantiate(spark, hit.point, Quaternion.FromToRotation(Vector3.forward, hit.normal));
+        }
+        */
+
+        //int tick = EntityHistory.Instance.GetClosestMatch(lagEntityPosition);
+        int tick = (int)rc.lagState;
+        
+        RaycastHit hit;
+        if(EntityHistory.Instance.RayPast(tick, rc.ray, 100f, out hit))
+        {
+            if (hit.collider.gameObject.tag == "Lag Tester")
+            {
+                hit.collider.gameObject.GetComponent<EntityLagTesterScript>().Indicate();
+            }
+            Instantiate(spark, hit.point, Quaternion.FromToRotation(Vector3.forward, hit.normal));
+        }
+
+
+    }
+
+    void update(float deltaTime)
+    {
+
+        if (playerShotThisFrame && mode == GunState.Held)
+        {
+            recoil = 70;
+            if (isServer)
+            {
+                CMD_Shoot(new Ray(Camera.main.transform.position, Camera.main.transform.forward), Clocky.instance.tick, Clocky.instance.tick * 1f);
+
+            }
+            else
+            {
+                CMD_Shoot(new Ray(Camera.main.transform.position, Camera.main.transform.forward), Clocky.instance.tick, gameEvents.lagTesterState);
+            }
+        }
+
+
+        if (isServer)
+        {
+            while (rayCmdList.Count > 0)//drop every late tick
+            {
+                if (rayCmdList[0].tick < Clocky.instance.tick)
+                {
+                    Debug.Log("Shoot command dropped, tick offset: " + (Clocky.instance.tick - rayCmdList[0].tick).ToString());
+                    rayCmdList.RemoveAt(0);
+                }
+                else
+                {
+                    break;
+                }
+            }
+            if (rayCmdList.Count > 0)//process the oldest tick if it matches the current tick
+            {
+                if (rayCmdList[0].tick == Clocky.instance.tick)
+                {
+                    processRay(rayCmdList[0]);
+                    rayCmdList.RemoveAt(0);
+                }
+            }
+        }
+
+        playerShotThisFrame = false;
     }
 }

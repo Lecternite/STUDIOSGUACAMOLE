@@ -27,6 +27,8 @@ public class GameEvents : NetworkBehaviour
     public UnityEvent<GameState> GameStateEntered;
     public UnityEvent<GameState> GameStateExited;
 
+    public float lagTesterState;
+
     #region RPC
 
     [Command(requiresAuthority = false)]
@@ -44,7 +46,7 @@ public class GameEvents : NetworkBehaviour
     }
 
 
-
+    /*
     [Command(requiresAuthority = false)]
     public void toserver_sendName(NetworkIdentity netID, string name)
     {
@@ -59,7 +61,9 @@ public class GameEvents : NetworkBehaviour
             netID.gameObject.GetComponent<playerScript>().nameTag.GetComponent<TMPro.TMP_Text>().text = name;
         }
     }
-
+    */
+    
+    /*
     [Command(requiresAuthority = false)]
     public void server_requestNames(NetworkIdentity netID)
     {
@@ -74,6 +78,7 @@ public class GameEvents : NetworkBehaviour
             toserver_sendName(NetworkClient.localPlayer, playerUserName);
         }
     }
+    */
 
     [ClientRpc]
     void RPC_EnterGameState(GameState state)
@@ -99,6 +104,23 @@ public class GameEvents : NetworkBehaviour
     private void Start()
     {
         GameStateEntered?.Invoke(gameState);
+
+        if (isServer)
+        {
+            Clocky.instance.SendTime += sendStateToClient;
+        }
+    }
+
+
+    void sendStateToClient()
+    {
+        RPC_SyncState(Clocky.instance.tick * 1f);
+    }
+
+    [ClientRpc]
+    void RPC_SyncState(float state)
+    {
+        lagTesterState = state;
     }
 
     private void Update()

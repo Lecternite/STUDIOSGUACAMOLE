@@ -8,8 +8,11 @@ public class Clocky : NetworkBehaviour
 {
     public static Clocky instance;
 
+    public static event Action Start;
+
     public event Action<float> GameTick;
     public event Action SendTime;
+    public event Action LateGameTick;
 
     [HideInInspector]
     public int tick = 0;
@@ -56,6 +59,11 @@ public class Clocky : NetworkBehaviour
         }
     }
 
+    private void OnEnable()
+    {
+        Start?.Invoke();
+    }
+
     void Update()
     {
         if (!isServer)
@@ -75,19 +83,21 @@ public class Clocky : NetworkBehaviour
             {
                 timer -= minTimeBetweenTicks;
 
-                while (tickAdjustment > 0)
+                while (tickAdjustment > 0)//If tick adjustment is positive, this while loop simulates each tick until the tick adjustment is zero
                 {
                     tick += 1;
                     GameTick?.Invoke(minTimeBetweenTicks);
                     tickAdjustment -= 1;
                 }
 
-                if (tickAdjustment < 0)
+                if (tickAdjustment < 0)//IF tick adjustment is negative, wait and do nothing this tick
                 {
                     tickAdjustment += 1;
                 }
-                else
+
+                else//If tick adjustment is zero, then simulate normally
                 {
+
                     tick += 1;
                     GameTick?.Invoke(minTimeBetweenTicks);
 
@@ -95,6 +105,7 @@ public class Clocky : NetworkBehaviour
                     {
                         requestAnotherSync();
                     }
+
                 }
             }
         }
@@ -108,8 +119,11 @@ public class Clocky : NetworkBehaviour
 
                 tick += 1;
                 GameTick?.Invoke(minTimeBetweenTicks);
+                LateGameTick?.Invoke();
             }
         }
+
+
 
         // This clock tells the program when to send messages
         netTimer += Time.deltaTime;

@@ -41,9 +41,7 @@ public class playerScript : NetworkBehaviour
 
     bool jumped = false;
 
-
     InputSnap[] clientInputBuffer = new InputSnap[100];
-
 
     public void Awake()
     {
@@ -64,31 +62,31 @@ public class playerScript : NetworkBehaviour
         base.OnStartClient();
         if (hasAuthority)
         {
+            //Fetch the main camera
             Camera.main.GetComponent<cameraScript>().player = gameObject;
+
+            //Debug line renderers
             fwdInd = Instantiate(ForwardIndicatorPrefab);
+
+            //Tag and layer
             tag = "Player";
             gameObject.layer = 6;
 
-            gameEvents.toserver_sendName(netIdentity, gameEvents.playerUserName);
-            gameEvents.server_requestNames(netIdentity);
+            
+            //gameEvents.toserver_sendName(netIdentity, gameEvents.playerUserName);
+            //gameEvents.server_requestNames(netIdentity);
 
-            playerCreated?.Invoke(this);
 
             //Subscribe to client plaeyr events
             gameEvents.GameStateEntered.AddListener(handleStateChange);
             Clocky.instance.SendTime += sendPlayerInputToServer;
+
+            playerCreated?.Invoke(this);
         }
         else
         {
-            tag = "EnemyPlayer";
-            if (isServer)
-            {
-                gameObject.layer = 6;
-            }
-            else
-            {
-                gameObject.layer = 0;
-            }
+            tag = "Player";
+            gameObject.layer = 6;
             nameTag = Instantiate(NameTagPrefab);
             nameTag.transform.SetParent(gameObject.transform);
             nameTag.transform.localPosition = Vector3.up * 1.2f;
@@ -117,6 +115,8 @@ public class playerScript : NetworkBehaviour
         {
             Clocky.instance.SendTime += sendPlayerStateToClient;
         }
+
+        EntityHistory.Instance.trackedEntities.Add(gameObject); // Add me to the tracking list
     }
 
     public override void OnStopServer()
@@ -143,11 +143,14 @@ public class playerScript : NetworkBehaviour
             {
                 if (colliders[i].gameObject.tag == "GunCollectible")
                 {
-                    if (canPickUp)
+                    if (hasAuthority)
                     {
-                        gun = colliders[i].gameObject.GetComponent<gunScript>();
-                        gun.collect(ref canPickUp);
-                        gun.GunDropped += gunIsDropped;
+                        if (canPickUp)
+                        {
+                            gun = colliders[i].gameObject.GetComponent<gunScript>();
+                            gun.collect(ref canPickUp);
+                            gun.GunDropped += gunIsDropped;
+                        }
                     }
                 }
                 else
@@ -224,7 +227,6 @@ public class playerScript : NetworkBehaviour
             }
 
             movement(deltaTime, inputS);
-
         }
 
         jumped = false;
@@ -316,6 +318,7 @@ public class playerScript : NetworkBehaviour
         {
             gNormal = Vector3.up;
         }
+
         /*
         if (Inputter.Instance.playerInput.actions["Respawn"].WasPressedThisFrame())
         {
@@ -339,36 +342,13 @@ public class playerScript : NetworkBehaviour
         gun.GunDropped -= gunIsDropped;
     }
 
-    public void local_Respawn()
+    public void Respawn()
     {
         transform.position = new Vector3(0, 20, 0);
         velocity = Vector3.zero;
     }
 
     #region RPC
-
-    [ClientRpc]
-    public void toclient_Respawn()
-    {
-        if(hasAuthority)
-        {
-            if(gameEvents.gameState == GameEvents.GameState.murderMystery)
-            {
-                if (imposter)
-                {
-                    gameEvents.server_EnterGameState(GameEvents.GameState.gameEnding);
-                }
-                server_GhostMe();
-            }
-            local_Respawn();
-        }
-    }
-
-    [Command(requiresAuthority = false)]
-    public void toserver_Respawn()
-    {
-        toclient_Respawn();
-    }
 
     [Command(requiresAuthority = false)]
     public void server_GhostMe()
@@ -385,7 +365,6 @@ public class playerScript : NetworkBehaviour
             nameTag.GetComponent<TMPro.TMP_Text>().alpha = 0;
         }
     }
-
 
     #endregion
 
