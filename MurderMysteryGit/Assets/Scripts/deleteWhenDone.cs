@@ -12,13 +12,10 @@ public class deleteWhenDone : MonoBehaviour
         inputField = GetComponent<TMP_InputField>();
         inputField.onSubmit.AddListener(Kill);
     }
-    private void OnDestroy()
-    {
-        inputField.onSubmit.RemoveListener(Kill);
-    }
 
     public void Kill(string s)
     {
+        inputField.onSubmit.RemoveListener(Kill);
         Destroy(gameObject);
     }
 

@@ -181,11 +181,11 @@ public class gunScript : NetworkBehaviour
 
     void processRay(RayCommand rayCommand)
     {
-        /*
+        int tick = (int)rayCommand.lagState;
+
         RaycastHit hit;
-        if (Physics.Raycast(ray, out hit, 100f))
+        if (EntityHistory.Instance.RayPast(tick, rayCommand.ray, 100f, out hit))
         {
-            
             if (hit.rigidbody != null)
             {
                 hit.rigidbody.AddForceAtPosition(Camera.main.transform.forward * 5f, hit.point, ForceMode.Impulse);
@@ -194,20 +194,6 @@ public class gunScript : NetworkBehaviour
             {
                 hit.collider.gameObject.GetComponent<playerScript>().Respawn();
             }
-            else if(hit.collider.gameObject.tag == "Lag Tester")
-            {
-                hit.collider.gameObject.GetComponent<EntityLagTesterScript>().Indicate();
-            }
-            Instantiate(spark, hit.point, Quaternion.FromToRotation(Vector3.forward, hit.normal));
-        }
-        */
-
-        //int tick = EntityHistory.Instance.GetClosestMatch(lagEntityPosition);
-        int tick = (int)rayCommand.lagState;
-        
-        RaycastHit hit;
-        if(EntityHistory.Instance.RayPast(tick, rayCommand.ray, 100f, out hit))
-        {
             if (hit.collider.gameObject.tag == "Lag Tester")
             {
                 hit.collider.gameObject.GetComponent<EntityLagTesterScript>().RPC_Indicate();
@@ -230,6 +216,15 @@ public class gunScript : NetworkBehaviour
             else
             {
                 CMD_Shoot(new Ray(Camera.main.transform.position, Camera.main.transform.forward), Clocky.instance.tick, gameEvents.lagTesterState);
+                if (isClientOnly)
+                {
+                    RaycastHit hit0;
+                    if (Physics.Raycast(new Ray(Camera.main.transform.position, Camera.main.transform.forward), out hit0, 100f))
+                    {
+                        Instantiate(spark, hit0.point, Quaternion.FromToRotation(Vector3.forward, hit0.normal));
+                    }
+                }
+
             }
         }
 

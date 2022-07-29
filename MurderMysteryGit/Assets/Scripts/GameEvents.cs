@@ -38,7 +38,7 @@ public class GameEvents : NetworkBehaviour
     }
 
 
-    /*
+    
     [Command(requiresAuthority = false)]
     public void toserver_sendName(NetworkIdentity netID, string name)
     {
@@ -53,9 +53,9 @@ public class GameEvents : NetworkBehaviour
             netID.gameObject.GetComponent<playerScript>().nameTag.GetComponent<TMPro.TMP_Text>().text = name;
         }
     }
-    */
     
-    /*
+    
+    
     [Command(requiresAuthority = false)]
     public void server_requestNames(NetworkIdentity netID)
     {
@@ -70,7 +70,7 @@ public class GameEvents : NetworkBehaviour
             toserver_sendName(NetworkClient.localPlayer, playerUserName);
         }
     }
-    */
+    
 
     [ClientRpc]
     void RPC_EnterGameState(GameState state)
@@ -166,5 +166,10 @@ public class GameEvents : NetworkBehaviour
     public string getNumPlayers()
     {
         return NetworkServer.connections.Count.ToString();
+    }
+
+    public void setUsername(string name)
+    {
+        playerUserName = name;
     }
 }

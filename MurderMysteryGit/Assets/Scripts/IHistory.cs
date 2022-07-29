@@ -1,24 +1,23 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using System;
 
-public class EntityState
+public class EntityRecord
 {
     public GameObject gameObject;
     public Vector3 position;
     public Vector3 temp;
 
-    public EntityState(GameObject gameObject, Vector3 position)
+    public EntityRecord(GameObject gameObject, Vector3 position)
     {
         this.gameObject = gameObject;
         this.position = position;
     }
 }
 
-public class Record
+public class RecordCollection
 {
     public int thisTick;
-    public List<EntityState> entities = new List<EntityState>();
+    public List<EntityRecord> entities = new List<EntityRecord>();
 }
 

@@ -7,7 +7,7 @@ public class EntityHistory : MonoBehaviour
 {
     public static EntityHistory Instance;
 
-    public Record[] historyBuffer = new Record[50];
+    public RecordCollection[] historyBuffer = new RecordCollection[50];
 
     public List<GameObject> trackedEntities = new List<GameObject>();
 
@@ -29,29 +29,43 @@ public class EntityHistory : MonoBehaviour
 
     void update()
     {
-        historyBuffer[(Clocky.instance.tick + 1) % 50] = new Record();
-        foreach (GameObject entity in trackedEntities)
+        List<GameObject> removeThese = new List<GameObject>();
+
+        historyBuffer[(Clocky.instance.tick + 1) % 50] = new RecordCollection();//The transforms are one frame late
+        for(int i = 0; i < trackedEntities.Count; i++)
         {
-            if(entity == null)
+            if (trackedEntities[i] == null)
             {
-                trackedEntities.Remove(entity);
+                removeThese.Add(trackedEntities[i]);
             }
             else
             {
-                historyBuffer[(Clocky.instance.tick + 1) % 50].entities.Add(new EntityState(entity, entity.transform.position));
+                historyBuffer[(Clocky.instance.tick + 1) % 50].entities.Add(new EntityRecord(trackedEntities[i], trackedEntities[i].transform.position));
             }
+        }
+
+        foreach (GameObject go in removeThese)
+        {
+            trackedEntities.Remove(go);
         }
     }
 
     public bool RayPast(int tick, Ray ray, float maxDist, out RaycastHit hit)
     {
-        Record currentRecord = historyBuffer[tick % 50];
+        RecordCollection currentRecordCollection = historyBuffer[tick % 50];
 
-        //Set all of the tracked entites to the correct positions
-        for (int i = 0; i < currentRecord.entities.Count; i++)
+        //Set all of the tracked entites to the correct positions and get rid of null entities
+        for (int i = 0; i < currentRecordCollection.entities.Count; i++)
         {
-            currentRecord.entities[i].temp = currentRecord.entities[i].gameObject.transform.position;
-            currentRecord.entities[i].gameObject.transform.position = currentRecord.entities[i].position;
+            if(currentRecordCollection.entities[i] == null)
+            {
+                currentRecordCollection.entities.RemoveAt(i);
+            }
+            else
+            {
+                currentRecordCollection.entities[i].temp = currentRecordCollection.entities[i].gameObject.transform.position;
+                currentRecordCollection.entities[i].gameObject.transform.position = currentRecordCollection.entities[i].position;
+            }
         }
         Physics.SyncTransforms();
 
@@ -60,9 +74,9 @@ public class EntityHistory : MonoBehaviour
         bool result = Physics.Raycast(ray, out rHit, 100f);
 
         //Put them back
-        for (int i = 0; i < currentRecord.entities.Count; i++)
+        for (int i = 0; i < currentRecordCollection.entities.Count; i++)
         {
-            currentRecord.entities[i].gameObject.transform.position = currentRecord.entities[i].temp;
+            currentRecordCollection.entities[i].gameObject.transform.position = currentRecordCollection.entities[i].temp;
         }
         Physics.SyncTransforms();
 

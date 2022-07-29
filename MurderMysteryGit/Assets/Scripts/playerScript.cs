@@ -72,9 +72,9 @@ public class playerScript : NetworkBehaviour
             tag = "Player";
             gameObject.layer = 6;
 
-            
-            //gameEvents.toserver_sendName(netIdentity, gameEvents.playerUserName);
-            //gameEvents.server_requestNames(netIdentity);
+            //Sync player usernames
+            gameEvents.toserver_sendName(netIdentity, gameEvents.playerUserName);
+            gameEvents.server_requestNames(netIdentity);
 
 
             //Subscribe to client plaeyr events
@@ -133,7 +133,7 @@ public class playerScript : NetworkBehaviour
 
     void collision(ref bool _grounded)
     {
-        Collider[] colliders = Physics.OverlapSphere(transform.position, 3f, layermask);
+        Collider[] colliders = Physics.OverlapSphere(transform.position, 3f);
         for (int i = 0; i < colliders.Length; i++)
         {
             Transform t = colliders[i].transform;
@@ -155,12 +155,15 @@ public class playerScript : NetworkBehaviour
                 }
                 else
                 {
-                    transform.position += direction * distance;
-                    velocity = Vector3.ProjectOnPlane(velocity, direction);
-                    if (Vector3.Angle(direction, Vector3.up) <= 60f)
+                    if (colliders[i] != myCollider)
                     {
-                        gNormal = direction;
-                        _grounded = true;
+                        transform.position += direction * distance;
+                        velocity = Vector3.ProjectOnPlane(velocity, direction);
+                        if (Vector3.Angle(direction, Vector3.up) <= 60f)
+                        {
+                            gNormal = direction;
+                            _grounded = true;
+                        }
                     }
                 }
             }
@@ -344,7 +347,7 @@ public class playerScript : NetworkBehaviour
 
     public void Respawn()
     {
-        transform.position = new Vector3(0, 20, 0);
+        transform.position = new Vector3(3, 20, 0);
         velocity = Vector3.zero;
     }
 
