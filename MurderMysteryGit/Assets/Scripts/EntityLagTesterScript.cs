@@ -8,6 +8,8 @@ public class EntityLagTesterScript : NetworkBehaviour
 
     Vector3 startingPos;
 
+    Interpolator interpolator = new Interpolator();
+
     private void Start()
     {
         startingPos = transform.position;
@@ -26,19 +28,24 @@ public class EntityLagTesterScript : NetworkBehaviour
         {
             transform.position = startingPos + new Vector3(Mathf.Cos(Clocky.instance.tick * 0.03f) * 2f, 0, Mathf.Sin(Clocky.instance.tick * 0.03f) * 6f);
         }
+        else
+        {
+            transform.position = interpolator.interpolate(Clocky.instance.tick);
+        }
     }
 
     void handleSendTime()
     {
-        RPC_SyncPosition(transform.position);
+        RPC_SyncPosition(transform.position, Clocky.instance.tick);
     }
 
     [ClientRpc]
-    void RPC_SyncPosition(Vector3 pos)
+    void RPC_SyncPosition(Vector3 pos, int tick)
     {
         if (!isServer)
         {
-            transform.position = pos;
+            //transform.position = pos;
+            interpolator.addTarget(tick + Clocky.instance.avgTickOffset + 3, pos);
         }
     }
 

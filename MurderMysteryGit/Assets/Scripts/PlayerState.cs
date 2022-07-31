@@ -26,12 +26,14 @@ public struct InputSnap
     public int tick;
     public Vector3 camTransform;
     public bool jumped;
+    public bool fired;
 
-    public InputSnap(Vector2 _moveVec, int _tick = 0, Vector3 _camTransform = new Vector3(), bool _jumped = false)
+    public InputSnap(Vector2 _moveVec, int _tick = 0, Vector3 _camTransform = new Vector3(), bool _jumped = false, bool _fired = false)
     {
         moveVec = _moveVec;
         tick = _tick;
         camTransform = _camTransform;
         jumped = _jumped;
+        fired = _fired;
     }
 }

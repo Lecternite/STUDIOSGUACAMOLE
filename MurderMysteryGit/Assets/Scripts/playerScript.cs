@@ -40,8 +40,11 @@ public class playerScript : NetworkBehaviour
     List<InputSnap> inputList = new List<InputSnap>();
 
     bool jumped = false;
+    bool fired = false;
 
     InputSnap[] clientInputBuffer = new InputSnap[100];
+
+    Interpolator interpolator = new Interpolator();
 
     public void Awake()
     {
@@ -184,6 +187,7 @@ public class playerScript : NetworkBehaviour
     private void Update()
     {
         jumped = Inputter.Instance.playerInput.actions["Jump"].WasPressedThisFrame() || jumped;
+        fired = Inputter.Instance.playerInput.actions["Fire"].WasPressedThisFrame() || fired;
     }
 
     void update(float deltaTime)
@@ -191,13 +195,13 @@ public class playerScript : NetworkBehaviour
         if(hasAuthority && isServer)//HOST LOCAL PLAYER
         {
             Vector2 input = Inputter.Instance.playerInput.actions["Move"].ReadValue<Vector2>();
-            movement(deltaTime, new InputSnap(input, 0, Camera.main.transform.right, jumped));
+            movement(deltaTime, new InputSnap(input, 0, Camera.main.transform.right, jumped, fired));
         }
 
         if(hasAuthority && !isServer)//CLIENT LOCAL PLAYER
         {
             Vector2 input = Inputter.Instance.playerInput.actions["Move"].ReadValue<Vector2>();
-            InputSnap currentSnap = new InputSnap(input, Clocky.instance.tick, Camera.main.transform.right, jumped);
+            InputSnap currentSnap = new InputSnap(input, Clocky.instance.tick, Camera.main.transform.right, jumped, fired);
             inputList.Add(currentSnap);
             clientInputBuffer[Clocky.instance.tick % 100] = currentSnap;
             movement(deltaTime, currentSnap);
@@ -232,20 +236,30 @@ public class playerScript : NetworkBehaviour
             movement(deltaTime, inputS);
         }
 
+        if(!isServer && !hasAuthority)//CLIENT NPC
+        {
+            transform.position = interpolator.interpolate(Clocky.instance.tick);
+        }
+
         jumped = false;
+        fired = false;
     }
 
     void handleServerSendTime()
     {
-        RPC_SyncPositionToClients(netIdentity, transform.position);
+        if(Clocky.instance.tick % 1 == 0)
+        {
+            RPC_SyncPositionToClients(netIdentity, transform.position, Clocky.instance.tick);
+        }
     }
 
     [ClientRpc]
-    void RPC_SyncPositionToClients(NetworkIdentity myId, Vector3 _position)
+    void RPC_SyncPositionToClients(NetworkIdentity myId, Vector3 _position, int tick)
     {
         if (!myId.hasAuthority)
         {
-            transform.position = _position;
+            //transform.position = _position;
+            interpolator.addTarget(tick + Clocky.instance.avgTickOffset + 3, _position);
         }
     }
 

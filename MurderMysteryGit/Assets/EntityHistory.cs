@@ -14,43 +14,33 @@ public class EntityHistory : MonoBehaviour
     private void Awake()
     {
         Instance = this;
+        Clocky.Start += subscribeToClocky;
     }
 
-    private void Start()
-    {
-        Clocky.Start += thing;
-    }
-
-    void thing()
+    void subscribeToClocky()
     {
         Clocky.instance.LateGameTick += update;
-        Clocky.Start -= thing;
+        Clocky.Start -= subscribeToClocky;
     }
 
     void update()
     {
-        List<GameObject> removeThese = new List<GameObject>();
-
         historyBuffer[(Clocky.instance.tick + 1) % 50] = new RecordCollection();//The transforms are one frame late
         for(int i = 0; i < trackedEntities.Count; i++)
         {
             if (trackedEntities[i] == null)
             {
-                removeThese.Add(trackedEntities[i]);
+                trackedEntities.RemoveAt(i);
+                i -= 1;
             }
             else
             {
                 historyBuffer[(Clocky.instance.tick + 1) % 50].entities.Add(new EntityRecord(trackedEntities[i], trackedEntities[i].transform.position));
             }
         }
-
-        foreach (GameObject go in removeThese)
-        {
-            trackedEntities.Remove(go);
-        }
     }
 
-    public bool RayPast(int tick, Ray ray, float maxDist, out RaycastHit hit)
+    public bool RayPast(int tick, Ray ray, float maxDist, out RaycastHit hit, GameObject excludeObject = null)
     {
         RecordCollection currentRecordCollection = historyBuffer[tick % 50];
 

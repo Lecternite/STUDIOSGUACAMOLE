@@ -20,6 +20,9 @@ public class Clocky : NetworkBehaviour
     private float tickRate = 50;
     public float minTimeBetweenTicks;
 
+    public float avgTickOffset = 0f;
+
+
     private float netTimer = 0;
     private float netTickRate = 30;
     private float netMinTimeBetweenTicks;
@@ -42,6 +45,8 @@ public class Clocky : NetworkBehaviour
 
     float averageCorrection = 0f;
     int averageCount = 0;
+
+
 
     private void Awake()
     {
@@ -154,6 +159,16 @@ public class Clocky : NetworkBehaviour
     {
         if (isClientOnly)
         {
+            if (avgTickOffset < 1f)
+            {
+                avgTickOffset = tick - serverTick;
+            }
+            else
+            {
+                avgTickOffset = Mathf.Lerp(avgTickOffset, tick - serverTick, 0.03f);
+            }
+
+
             Debug.Log("synctick");
             if (Math.Abs(serverAdjustment) > 10)
             {

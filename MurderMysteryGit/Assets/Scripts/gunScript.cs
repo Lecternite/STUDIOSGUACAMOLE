@@ -205,6 +205,11 @@ public class gunScript : NetworkBehaviour
     void update(float deltaTime)
     {
 
+        if (!isServer)
+        {
+            gameEvents.updateLaggyState();
+        }
+
         if (playerShotThisFrame && mode == GunState.Held)
         {
             recoil = 70;

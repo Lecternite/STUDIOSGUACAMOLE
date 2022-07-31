@@ -1273,6 +1273,11 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 6466841109888462818, guid: cf6e4438073e16545992691b7dc79993,
         type: 3}
+      propertyPath: unreliableLoss
+      value: 0.05
+      objectReference: {fileID: 0}
+    - target: {fileID: 6466841109888462818, guid: cf6e4438073e16545992691b7dc79993,
+        type: 3}
       propertyPath: reliableLatency
       value: 0.3
       objectReference: {fileID: 0}
@@ -1280,6 +1285,11 @@ PrefabInstance:
         type: 3}
       propertyPath: unreliableLatency
       value: 0.3
+      objectReference: {fileID: 0}
+    - target: {fileID: 6466841109888462818, guid: cf6e4438073e16545992691b7dc79993,
+        type: 3}
+      propertyPath: unreliableScramble
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 6466841109888462819, guid: cf6e4438073e16545992691b7dc79993,
         type: 3}
@@ -3988,6 +3998,7 @@ MonoBehaviour:
   syncInterval: 0.1
   tick: 0
   minTimeBetweenTicks: 0
+  avgTickOffset: 0
   continueSync: 1
 --- !u!114 &2012456170
 MonoBehaviour:

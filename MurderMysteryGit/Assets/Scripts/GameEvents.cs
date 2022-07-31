@@ -11,6 +11,8 @@ public class GameEvents : NetworkBehaviour
 
     public bool localPlayerReady = false;
 
+    Interpolator interpolator = new Interpolator();
+
     [SyncVar]
     public int numReady = 0;
 
@@ -107,13 +109,17 @@ public class GameEvents : NetworkBehaviour
 
     void sendStateToClient()
     {
-        RPC_SyncState(Clocky.instance.tick * 1f);
+        RPC_SyncState(Clocky.instance.tick * 1f, Clocky.instance.tick);
     }
 
     [ClientRpc]
-    void RPC_SyncState(float state)
+    void RPC_SyncState(float state, int serverTick)
     {
-        lagTesterState = state;
+        if (!isServer)
+        {
+            interpolator.addTarget(serverTick + Clocky.instance.avgTickOffset + 3, new Vector3(state, 0, 0));
+            //lagTesterState = state;
+        }
     }
 
     private void Update()
@@ -171,5 +177,10 @@ public class GameEvents : NetworkBehaviour
     public void setUsername(string name)
     {
         playerUserName = name;
+    }
+
+    public void updateLaggyState()
+    {
+        lagTesterState = interpolator.interpolate(Clocky.instance.tick).x;
     }
 }
