@@ -20,10 +20,8 @@ public class Interpolator
 {
     public Vector3 to;
     public Vector3 from;
-
     public Vector3 current;
     public float t;
-    public float lerpTime;
 
     public List<Snapshot> positions = new List<Snapshot>();
 
@@ -45,13 +43,11 @@ public class Interpolator
 
     public Vector3 interpolate(float tick)
     {
-        bool thing = false;
         for(int i = 0; i < positions.Count - 1; i++)
         {
             t = InverseLerp((float)positions[i].tick, (float)positions[i + 1].tick, tick);
             if (0 <= t && t <= 1f)
             {
-                thing = true;
                 from = positions[i].position;
                 to = positions[i + 1].position;
 
@@ -64,16 +60,6 @@ public class Interpolator
                 break;
             }
         }
-
-        if (!thing)
-        {
-            Debug.Log("Interpolation has stopped | " + tick.ToString());
-        }
-        else
-        {
-            Debug.Log(positions.Count);
-        }
-
         current = Vector3.Lerp(from, to, t);
 
         return current;

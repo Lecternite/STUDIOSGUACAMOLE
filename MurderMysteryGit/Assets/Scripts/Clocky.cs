@@ -27,6 +27,7 @@ public class Clocky : NetworkBehaviour
     private float netTickRate = 30;
     private float netMinTimeBetweenTicks;
 
+
     public bool continueSync = true;
 
     int tickAdjustment = 0;
@@ -47,7 +48,6 @@ public class Clocky : NetworkBehaviour
     int averageCount = 0;
 
 
-
     private void Awake()
     {
         instance = this;
@@ -62,10 +62,14 @@ public class Clocky : NetworkBehaviour
         {
             CMD_TickStart(tick - intendedOffsetFromServer);
         }
+
+        Start?.Invoke();
     }
 
-    private void OnEnable()
+    public override void OnStartServer()
     {
+        base.OnStartServer();
+
         Start?.Invoke();
     }
 

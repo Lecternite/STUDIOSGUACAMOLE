@@ -51,18 +51,16 @@ public class playerScript : NetworkBehaviour
         gameEvents = FindObjectOfType<GameEvents>();
         myCollider = GetComponent<CapsuleCollider>();
         layermask = ~(1 << 6);
-        Clocky.instance.GameTick += update;
-    }
-
-    public void OnDestroy()
-    {
-        Clocky.instance.GameTick -= update;
     }
 
     public override void OnStartClient()
     {
-        velocity = Vector3.zero;
         base.OnStartClient();
+
+        Clocky.instance.GameTick += update;
+
+        velocity = Vector3.zero;
+
         if (hasAuthority)
         {
             //Fetch the main camera
@@ -100,6 +98,9 @@ public class playerScript : NetworkBehaviour
     public override void OnStopClient()
     {
         base.OnStopClient();
+
+        Clocky.instance.GameTick -= update;
+
         if (hasAuthority)
         {
             //Unsubscribe to client player events
@@ -111,6 +112,11 @@ public class playerScript : NetworkBehaviour
     public override void OnStartServer()
     {
         base.OnStartServer();
+
+        if (!isClient)
+        {
+            Clocky.instance.GameTick += update;
+        }
 
         Clocky.instance.SendTime += handleServerSendTime;
 
@@ -126,6 +132,11 @@ public class playerScript : NetworkBehaviour
     {
         base.OnStopServer();
 
+        if (!isClient)
+        {
+            Clocky.instance.GameTick -= update;
+        }
+
         Clocky.instance.SendTime -= handleServerSendTime;
 
         if (!hasAuthority)
@@ -133,6 +144,7 @@ public class playerScript : NetworkBehaviour
             Clocky.instance.SendTime -= sendPlayerStateToClient;
         }
     }
+
 
     void collision(ref bool _grounded)
     {

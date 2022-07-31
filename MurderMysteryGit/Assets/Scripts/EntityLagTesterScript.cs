@@ -10,16 +10,23 @@ public class EntityLagTesterScript : NetworkBehaviour
 
     Interpolator interpolator = new Interpolator();
 
-    private void Start()
+    private void Awake()
     {
         startingPos = transform.position;
+    }
 
+    public override void OnStartServer()
+    {
+        base.OnStartServer();
+        EntityHistory.Instance.trackedEntities.Add(gameObject);
         Clocky.instance.GameTick += update;
-        if (isServer)
-        {
-            Clocky.instance.SendTime += handleSendTime;
-            EntityHistory.Instance.trackedEntities.Add(gameObject);
-        }
+        Clocky.instance.SendTime += handleSendTime;
+    }
+
+    public override void OnStartClient()
+    {
+        base.OnStartClient();
+        Clocky.instance.GameTick += update;
     }
 
     void update(float deltaTime)
@@ -40,12 +47,13 @@ public class EntityLagTesterScript : NetworkBehaviour
     }
 
     [ClientRpc]
-    void RPC_SyncPosition(Vector3 pos, int tick)
+    void RPC_SyncPosition(Vector3 pos, int serverTick)
     {
         if (!isServer)
         {
             //transform.position = pos;
-            interpolator.addTarget(tick + Clocky.instance.avgTickOffset + 3, pos);
+            interpolator.addTarget(serverTick + Clocky.instance.avgTickOffset + 3, pos);
+            Debug.Log(interpolator.positions.Count);
         }
     }
 

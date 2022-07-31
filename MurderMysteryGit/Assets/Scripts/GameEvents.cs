@@ -31,6 +31,21 @@ public class GameEvents : NetworkBehaviour
 
     public float lagTesterState;
 
+    public override void OnStartServer()
+    {
+        base.OnStartServer();
+        GameStateEntered?.Invoke(gameState);
+        Clocky.instance.SendTime += sendStateToClient;
+    }
+
+    public override void OnStartClient()
+    {
+        base.OnStartClient();
+        GameStateEntered?.Invoke(gameState);
+    }
+
+
+
     #region RPC
 
     [Command(requiresAuthority = false)]
@@ -97,15 +112,6 @@ public class GameEvents : NetworkBehaviour
 
     #endregion
 
-    private void Start()
-    {
-        GameStateEntered?.Invoke(gameState);
-
-        if (isServer)
-        {
-            Clocky.instance.SendTime += sendStateToClient;
-        }
-    }
 
     void sendStateToClient()
     {

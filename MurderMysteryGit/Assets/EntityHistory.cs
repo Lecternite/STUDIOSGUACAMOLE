@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using System;
 using Mirror;
 
 public class EntityHistory : MonoBehaviour
@@ -11,21 +12,32 @@ public class EntityHistory : MonoBehaviour
 
     public List<GameObject> trackedEntities = new List<GameObject>();
 
+    public static event Action<EntityHistory> EntityHistoryCreated;
+
     private void Awake()
     {
         Instance = this;
-        Clocky.Start += subscribeToClocky;
+        Clocky.Start += clockyStart;
     }
 
-    void subscribeToClocky()
+    void clockyStart()
     {
-        Clocky.instance.LateGameTick += update;
-        Clocky.Start -= subscribeToClocky;
+        Clocky.Start -= clockyStart;
+
+        if (Clocky.instance.isServer)
+        {
+            Clocky.instance.LateGameTick += update;
+            EntityHistoryCreated?.Invoke(this);
+        }
+        else
+        {
+            Destroy(gameObject);
+        }
     }
 
     void update()
     {
-        historyBuffer[(Clocky.instance.tick + 1) % 50] = new RecordCollection();//The transforms are one frame late
+        historyBuffer[(Clocky.instance.tick + 1) % 50] = new RecordCollection();//The transforms are one frame late i think
         for(int i = 0; i < trackedEntities.Count; i++)
         {
             if (trackedEntities[i] == null)
@@ -40,7 +52,7 @@ public class EntityHistory : MonoBehaviour
         }
     }
 
-    public bool RayPast(int tick, Ray ray, float maxDist, out RaycastHit hit, GameObject excludeObject = null)
+    public bool RayPast(int tick, Ray ray, float maxDist, out RaycastHit hit, GameObject excludeObject = null) //Currently raypast only calculates nearest tick, no interpolation
     {
         RecordCollection currentRecordCollection = historyBuffer[tick % 50];
 
