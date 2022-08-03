@@ -30,13 +30,13 @@ public class Clocky : NetworkBehaviour
 
     public bool continueSync = true;
 
-    int tickAdjustment = 0;
+    int tickAdjustor = 0;
 
     bool readySend = false;
 
     private float multiplier = 1f;
 
-    int tickWrongness = 0;
+    int tickCorrection = 0;
 
     int intendedOffsetFromServer = 4;
 
@@ -92,16 +92,16 @@ public class Clocky : NetworkBehaviour
             {
                 timer -= minTimeBetweenTicks;
 
-                while (tickAdjustment > 0)//If tick adjustment is positive, this while loop simulates each tick until the tick adjustment is zero
+                while (tickAdjustor > 0)//If tick adjustment is positive, this while loop simulates each tick until the tick adjustment is zero
                 {
                     tick += 1;
                     GameTick?.Invoke(minTimeBetweenTicks);
-                    tickAdjustment -= 1;
+                    tickAdjustor -= 1;
                 }
 
-                if (tickAdjustment < 0)//IF tick adjustment is negative, wait and do nothing this tick
+                if (tickAdjustor < 0)//IF tick adjustment is negative, wait and do nothing this tick
                 {
-                    tickAdjustment += 1;
+                    tickAdjustor += 1;
                 }
 
                 else//If tick adjustment is zero, then simulate normally
@@ -110,7 +110,7 @@ public class Clocky : NetworkBehaviour
                     tick += 1;
                     GameTick?.Invoke(minTimeBetweenTicks);
 
-                    if (readySend && ((resendTimer <= 0f && multiplierTimer <= 0f) || tickWrongness > 9))
+                    if (readySend && ((resendTimer <= 0f && multiplierTimer <= 0f) || tickCorrection > 9))
                     {
                         requestAnotherSync();
                     }
@@ -129,6 +129,11 @@ public class Clocky : NetworkBehaviour
                 tick += 1;
                 GameTick?.Invoke(minTimeBetweenTicks);
                 LateGameTick?.Invoke();
+
+                if(tick % 20 == 0)
+                {
+                    RPC_ServerTick(tick);
+                }
             }
         }
 
@@ -144,6 +149,29 @@ public class Clocky : NetworkBehaviour
             SendTime?.Invoke();
         }
     }
+
+
+
+
+    [ClientRpc]
+    void RPC_ServerTick(int serverTick)
+    {
+        if (isClientOnly)
+        {
+            int offset = tick - serverTick;
+
+            if (Mathf.Abs(offset - avgTickOffset) > 2)
+            {
+                avgTickOffset = offset;
+            }
+            else
+            {
+                avgTickOffset = Mathf.Lerp(avgTickOffset, offset, 0.01f);
+            }
+        }
+    }
+
+
 
     void requestAnotherSync()
     {
@@ -163,16 +191,6 @@ public class Clocky : NetworkBehaviour
     {
         if (isClientOnly)
         {
-            if (avgTickOffset < 1f)
-            {
-                avgTickOffset = tick - serverTick;
-            }
-            else
-            {
-                avgTickOffset = Mathf.Lerp(avgTickOffset, tick - serverTick, 0.03f);
-            }
-
-
             Debug.Log("synctick");
             if (Math.Abs(serverAdjustment) > 10)
             {

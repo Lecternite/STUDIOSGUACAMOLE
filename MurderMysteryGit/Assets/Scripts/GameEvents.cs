@@ -123,8 +123,7 @@ public class GameEvents : NetworkBehaviour
     {
         if (!isServer)
         {
-            interpolator.addTarget(serverTick + Clocky.instance.avgTickOffset + 3, new Vector3(state, 0, 0));
-            //lagTesterState = state;
+            interpolator.addTarget(serverTick + Clocky.instance.avgTickOffset + 4, new Vector3(state, 0, 0));
         }
     }
 

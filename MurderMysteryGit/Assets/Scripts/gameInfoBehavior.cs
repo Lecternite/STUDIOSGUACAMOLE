@@ -36,7 +36,7 @@ public class gameInfoBehavior : MonoBehaviour
         }
         if(Clocky.instance != null && gameEvents != null)
         {
-            tm.text = "Tick: " + Clocky.instance.tick.ToString() + " | " + gameEvents.gameState.ToString() + " | " + gameEvents.getNumPlayers() + " | " + gameEvents.numReady.ToString() + " | " + imposter;
+            tm.text = "Tick: " + Clocky.instance.tick.ToString() + " | " + gameEvents.gameState.ToString() + " | " + gameEvents.getNumPlayers() + " | " + gameEvents.numReady.ToString() + " | " + imposter + "\n" + Clocky.instance.avgTickOffset.ToString("F3");
         }
     }
 }

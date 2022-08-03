@@ -25,6 +25,8 @@ public class Interpolator
 
     public List<Snapshot> positions = new List<Snapshot>();
 
+    public bool interpolationStopped = false;
+
     public Interpolator()
     {
         current = Vector3.zero;
@@ -43,11 +45,13 @@ public class Interpolator
 
     public Vector3 interpolate(float tick)
     {
+        interpolationStopped = true;
         for(int i = 0; i < positions.Count - 1; i++)
         {
             t = InverseLerp((float)positions[i].tick, (float)positions[i + 1].tick, tick);
             if (0 <= t && t <= 1f)
             {
+                interpolationStopped = false;
                 from = positions[i].position;
                 to = positions[i + 1].position;
 
@@ -61,6 +65,11 @@ public class Interpolator
             }
         }
         current = Vector3.Lerp(from, to, t);
+
+        if (interpolationStopped)
+        {
+            Debug.LogError("Interpolation this interpolator has stuttered");
+        }
 
         return current;
     }

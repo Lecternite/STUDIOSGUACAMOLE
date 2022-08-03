@@ -1274,12 +1274,12 @@ PrefabInstance:
     - target: {fileID: 6466841109888462818, guid: cf6e4438073e16545992691b7dc79993,
         type: 3}
       propertyPath: unreliableLoss
-      value: 0.05
+      value: 0.1
       objectReference: {fileID: 0}
     - target: {fileID: 6466841109888462818, guid: cf6e4438073e16545992691b7dc79993,
         type: 3}
       propertyPath: reliableLatency
-      value: 0.3
+      value: 0.32
       objectReference: {fileID: 0}
     - target: {fileID: 6466841109888462818, guid: cf6e4438073e16545992691b7dc79993,
         type: 3}
@@ -1289,7 +1289,7 @@ PrefabInstance:
     - target: {fileID: 6466841109888462818, guid: cf6e4438073e16545992691b7dc79993,
         type: 3}
       propertyPath: unreliableScramble
-      value: 0
+      value: 0.01
       objectReference: {fileID: 0}
     - target: {fileID: 6466841109888462819, guid: cf6e4438073e16545992691b7dc79993,
         type: 3}

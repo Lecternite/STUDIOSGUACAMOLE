@@ -271,7 +271,7 @@ public class playerScript : NetworkBehaviour
         if (!myId.hasAuthority)
         {
             //transform.position = _position;
-            interpolator.addTarget(tick + Clocky.instance.avgTickOffset + 3, _position);
+            interpolator.addTarget(tick + Clocky.instance.avgTickOffset + 4, _position);
         }
     }
 

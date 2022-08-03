@@ -52,8 +52,7 @@ public class EntityLagTesterScript : NetworkBehaviour
         if (!isServer)
         {
             //transform.position = pos;
-            interpolator.addTarget(serverTick + Clocky.instance.avgTickOffset + 3, pos);
-            Debug.Log(interpolator.positions.Count);
+            interpolator.addTarget(serverTick + Clocky.instance.avgTickOffset + 4, pos);
         }
     }
 
