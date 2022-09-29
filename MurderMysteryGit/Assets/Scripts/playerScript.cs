@@ -18,7 +18,8 @@ public class playerScript : NetworkBehaviour
 
     CapsuleCollider myCollider;
 
-    int layermask;
+    int layermask = ~(1 << 6);
+
 
     Vector3 gNormal = Vector3.up;
 
@@ -50,7 +51,6 @@ public class playerScript : NetworkBehaviour
     {
         gameEvents = FindObjectOfType<GameEvents>();
         myCollider = GetComponent<CapsuleCollider>();
-        layermask = ~(1 << 6);
     }
 
     public override void OnStartClient()

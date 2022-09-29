@@ -6,46 +6,44 @@ using Mirror;
 
 public class Clocky : NetworkBehaviour
 {
+    //Singleton instance
     public static Clocky instance;
 
+    //Public actions
     public static event Action Start;
-
     public event Action<float> GameTick;
     public event Action SendTime;
     public event Action LateGameTick;
 
+    //Timing variables
     [HideInInspector]
     public int tick = 0;
     private float timer = 0;
     private float tickRate = 50;
     public float minTimeBetweenTicks;
 
+    //This is the offset from perspective of the client
     public float avgTickOffset = 0f;
 
-
+    //Sendrate timing variables
     private float netTimer = 0;
     private float netTickRate = 30;
     private float netMinTimeBetweenTicks;
 
+    //Time adjustment variables
+    float multiplier = 1f;
 
-    public bool continueSync = true;
-
-    int tickAdjustor = 0;
-
-    bool readySend = false;
-
-    private float multiplier = 1f;
-
-    int tickCorrection = 0;
-
+    //This is how many ticks ahead of the server we want to be in order for packets to make it on time
     int intendedOffsetFromServer = 4;
 
-    float resendTimer = 0;
-
+    //Timers etc.
+    float resendCoolDown = 0;
     float multiplierTimer = 0f;
+    bool readySend = false;
 
+    //The average tick offset from persepective of the server - client uses this directly
     float averageCorrection = 0f;
-    int averageCount = 0;
+    int avgCorrectionMagnitude = 0;
 
 
     private void Awake()
@@ -75,49 +73,33 @@ public class Clocky : NetworkBehaviour
 
     void Update()
     {
+        //CLIENT ONLY
         if (!isServer)
         {
-            multiplierTimer = Mathf.Max(-0.0001f, multiplierTimer - Time.deltaTime);//Limit the multiplier tick adjusment to this timer
+            multiplierTimer = Mathf.Max(-1f, multiplierTimer - Time.deltaTime);//Limit the multiplier tick adjusment to this timer
             if (multiplierTimer <= 0)
             {
                 multiplier = 1f;
             }
 
-            timer += Time.deltaTime * multiplier;
+            timer += Time.deltaTime * multiplier;//Slightly speed/slow time to catch up with the server's offset
 
-            resendTimer = Mathf.Max(-0.001f, resendTimer - Time.deltaTime);//Cool down for sending clock sync messages
-
+            resendCoolDown = Mathf.Max(-1f, resendCoolDown - Time.deltaTime);//Cool down for sending clock sync messages
 
             while (timer >= minTimeBetweenTicks)
             {
                 timer -= minTimeBetweenTicks;
 
-                while (tickAdjustor > 0)//If tick adjustment is positive, this while loop simulates each tick until the tick adjustment is zero
+                tick += 1;
+                GameTick?.Invoke(minTimeBetweenTicks);
+
+                if (readySend && (resendCoolDown <= 0f && multiplierTimer <= 0f))
                 {
-                    tick += 1;
-                    GameTick?.Invoke(minTimeBetweenTicks);
-                    tickAdjustor -= 1;
-                }
-
-                if (tickAdjustor < 0)//IF tick adjustment is negative, wait and do nothing this tick
-                {
-                    tickAdjustor += 1;
-                }
-
-                else//If tick adjustment is zero, then simulate normally
-                {
-
-                    tick += 1;
-                    GameTick?.Invoke(minTimeBetweenTicks);
-
-                    if (readySend && ((resendTimer <= 0f && multiplierTimer <= 0f) || tickCorrection > 9))
-                    {
-                        requestAnotherSync();
-                    }
-
+                    requestAnotherSync();
                 }
             }
         }
+        //SERVER AND HOST
         else
         {
             timer += Time.deltaTime;
@@ -128,7 +110,7 @@ public class Clocky : NetworkBehaviour
 
                 tick += 1;
                 GameTick?.Invoke(minTimeBetweenTicks);
-                LateGameTick?.Invoke();
+                LateGameTick?.Invoke();//This is for the entity history on server only
 
                 if(tick % 20 == 0)
                 {
@@ -137,9 +119,7 @@ public class Clocky : NetworkBehaviour
             }
         }
 
-
-
-        // This clock tells the program when to send messages
+        // This clock tells the program when to send messages - currently the same for server and client
         netTimer += Time.deltaTime;
 
         while (netTimer >= netMinTimeBetweenTicks)
@@ -149,9 +129,6 @@ public class Clocky : NetworkBehaviour
             SendTime?.Invoke();
         }
     }
-
-
-
 
     [ClientRpc]
     void RPC_ServerTick(int serverTick)
@@ -171,8 +148,6 @@ public class Clocky : NetworkBehaviour
         }
     }
 
-
-
     void requestAnotherSync()
     {
         CMD_SyncTick(tick - intendedOffsetFromServer);
@@ -189,37 +164,39 @@ public class Clocky : NetworkBehaviour
     [TargetRpc]
     public void RPC_SyncTick(NetworkConnection conn, int serverTick, int serverAdjustment)
     {
-        if (isClientOnly)
+        if (!isClientOnly)
         {
-            Debug.Log("synctick");
-            if (Math.Abs(serverAdjustment) > 10)
+            return;
+        }
+
+        Debug.Log("synctick");
+        if (Math.Abs(serverAdjustment) > 10)
+        {
+            tick += serverAdjustment;
+            Debug.Log("tick is being directly adjusted by: " + serverAdjustment.ToString());
+        }
+        else
+        {
+            if (avgCorrectionMagnitude < 20)
             {
-                tick += serverAdjustment;
-                Debug.Log("tick is being directly adjusted by: " + serverAdjustment.ToString());
+                averageCorrection += serverAdjustment;
+                avgCorrectionMagnitude += 1;
+                Debug.Log("Current average: " + (averageCorrection / avgCorrectionMagnitude).ToString());
             }
             else
             {
-                if (averageCount < 20)
-                {
-                    averageCorrection += serverAdjustment;
-                    averageCount += 1;
-                    Debug.Log("Current average: " + (averageCorrection / averageCount).ToString());
-                }
-                else
-                {
-                    averageCorrection /= averageCount;
-                    multiplier = (averageCorrection / (11f * tickRate) + 1f);
-                    multiplierTimer = 9f;
-                    Debug.Log("The average was: " + averageCorrection.ToString() + " | multiplier: " + multiplier.ToString());
-                    averageCount = 0;
-                    averageCorrection = 0f;
-                }
+                averageCorrection /= avgCorrectionMagnitude;
+                multiplier = 1f +  averageCorrection / (11f * tickRate);
+                multiplierTimer = 9f;
+                Debug.Log("The average was: " + averageCorrection.ToString() + " | multiplier: " + multiplier.ToString());
+                avgCorrectionMagnitude = 0;
+                averageCorrection = 0f;
             }
-
-            readySend = true;
-
-            resendTimer = 0.5f;
         }
+
+        readySend = true;
+
+        resendCoolDown = 0.5f;
     }
 
     [Command(requiresAuthority = false)]

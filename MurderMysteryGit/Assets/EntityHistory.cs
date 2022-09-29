@@ -24,7 +24,7 @@ public class EntityHistory : MonoBehaviour
     {
         Clocky.Start -= clockyStart;
 
-        if (Clocky.instance.isServer)
+        if (Clocky.instance.isServer)//If on the server, then subscribe to lateGameTicks, otherwise, destroy myself
         {
             Clocky.instance.LateGameTick += update;
             EntityHistoryCreated?.Invoke(this);
@@ -37,7 +37,8 @@ public class EntityHistory : MonoBehaviour
 
     void update()
     {
-        historyBuffer[(Clocky.instance.tick + 1) % 50] = new RecordCollection();//The transforms are one frame late i think
+        int currentIndex = (Clocky.instance.tick + 1) % 50;
+        historyBuffer[currentIndex] = new RecordCollection();//The transforms are one frame late i think
         for(int i = 0; i < trackedEntities.Count; i++)
         {
             if (trackedEntities[i] == null)
@@ -47,7 +48,7 @@ public class EntityHistory : MonoBehaviour
             }
             else
             {
-                historyBuffer[(Clocky.instance.tick + 1) % 50].entities.Add(new EntityRecord(trackedEntities[i], trackedEntities[i].transform.position));
+                historyBuffer[currentIndex].entities.Add(new EntityRecord(trackedEntities[i], trackedEntities[i].transform.position));
             }
         }
     }

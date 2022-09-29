@@ -15,7 +15,6 @@ public class Snapshot
     }
 }
 
-
 public class Interpolator
 {
     public Vector3 to;
@@ -64,11 +63,13 @@ public class Interpolator
                 break;
             }
         }
-        current = Vector3.Lerp(from, to, t);
-
         if (interpolationStopped)
         {
             Debug.LogError("Interpolation this interpolator has stuttered");
+        }
+        else
+        {
+            current = Vector3.Lerp(from, to, t);
         }
 
         return current;
