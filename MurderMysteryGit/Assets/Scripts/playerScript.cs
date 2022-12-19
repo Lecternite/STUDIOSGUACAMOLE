@@ -18,8 +18,7 @@ public class playerScript : NetworkBehaviour
 
     CapsuleCollider myCollider;
 
-    int layermask = ~(1 << 6);
-
+    //int layermask = ~(1 << 6);
 
     Vector3 gNormal = Vector3.up;
 
@@ -29,7 +28,7 @@ public class playerScript : NetworkBehaviour
 
     public GameEvents gameEvents;
 
-    public static event Action<playerScript> playerCreated;
+    DependencyHelper<playerScript> dependencyHelper;
 
     gunScript gun;
 
@@ -49,6 +48,7 @@ public class playerScript : NetworkBehaviour
 
     public void Awake()
     {
+        dependencyHelper = new DependencyHelper<playerScript>(this);
         gameEvents = FindObjectOfType<GameEvents>();
         myCollider = GetComponent<CapsuleCollider>();
     }
@@ -64,7 +64,7 @@ public class playerScript : NetworkBehaviour
         if (hasAuthority)
         {
             //Fetch the main camera
-            Camera.main.GetComponent<cameraScript>().player = gameObject;
+            Camera.main.GetComponent<cameraScript>().SetPlayer(gameObject);
 
             //Debug line renderers
             fwdInd = Instantiate(ForwardIndicatorPrefab);
@@ -78,11 +78,9 @@ public class playerScript : NetworkBehaviour
             gameEvents.server_requestNames(netIdentity);
 
 
-            //Subscribe to client plaeyr events
+            //Subscribe to client player events
             gameEvents.GameStateEntered.AddListener(handleStateChange);
             Clocky.instance.SendTime += sendPlayerInputToServer;
-
-            playerCreated?.Invoke(this);
         }
         else
         {
@@ -125,7 +123,7 @@ public class playerScript : NetworkBehaviour
             Clocky.instance.SendTime += sendPlayerStateToClient;
         }
 
-        EntityHistory.Instance.trackedEntities.Add(gameObject); // Add me to the tracking list
+        EntityHistory.Instance.trackedEntities.Add(gameObject); // Add me to the tracking list for lag compensation
     }
 
     public override void OnStopServer()
@@ -144,7 +142,6 @@ public class playerScript : NetworkBehaviour
             Clocky.instance.SendTime -= sendPlayerStateToClient;
         }
     }
-
 
     void collision(ref bool _grounded)
     {
@@ -184,11 +181,6 @@ public class playerScript : NetworkBehaviour
             }
         }
 
-    }
-
-    public void setImposter(bool _imposter)
-    {
-        imposter = _imposter;
     }
 
     public void handleStateChange(GameEvents.GameState state)
@@ -308,7 +300,6 @@ public class playerScript : NetworkBehaviour
         {
             movement(Clocky.instance.minTimeBetweenTicks, clientInputBuffer[i % 100]);
         }
-        
     }
 
     public void movement(float deltaTime, InputSnap input)
@@ -373,11 +364,10 @@ public class playerScript : NetworkBehaviour
 
     public void Respawn()
     {
-        transform.position = new Vector3(3, 20, 0);
+        int index = UnityEngine.Random.Range(0, RespawnPoint.respawn_points.Count);
+        transform.position = RespawnPoint.respawn_points[index];
         velocity = Vector3.zero;
     }
-
-    #region RPC
 
     [Command(requiresAuthority = false)]
     public void server_GhostMe()
@@ -394,7 +384,4 @@ public class playerScript : NetworkBehaviour
             nameTag.GetComponent<TMPro.TMP_Text>().alpha = 0;
         }
     }
-
-    #endregion
-
 }

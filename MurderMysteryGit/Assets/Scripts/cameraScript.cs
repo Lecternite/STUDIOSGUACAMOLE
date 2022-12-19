@@ -3,21 +3,33 @@ using System.Collections.Generic;
 using UnityEngine;
 using System;
 
+
 public class cameraScript : MonoBehaviour
 {
     [HideInInspector]
     public GameObject player;
-    [HideInInspector]
 
-    float rotX = 0;
-    float rotY = 0;
+    procedure player_procedure = () => { };
+
+    public float rotX = 0;
+    public float rotY = 0;
 
     Vector3 target = Vector3.zero;
 
     [SerializeField]
     float mouseSensivity;
 
-    public event Action cameraUpdated; 
+    public event Action cameraUpdated;
+
+    public void SetPlayer(GameObject _player)
+    {
+        player = _player;
+        player_procedure = () =>
+        {
+            target = player.transform.position;
+            transform.position = target + player.transform.up * 0.6f;
+        };
+    }
 
     void Start()
     {
@@ -42,11 +54,8 @@ public class cameraScript : MonoBehaviour
         rotX = Mathf.Clamp(rotX, -90f, 90f);
 
         transform.rotation = Quaternion.Euler(rotX, rotY, 0);
-        if(player != null)
-        {
-            target = player.transform.position;
-            transform.position = target + player.transform.up * 0.6f;
-        }
+
+        player_procedure();
 
         if (Inputter.Instance.playerInput.actions["MouseLock"].WasPressedThisFrame())
         {

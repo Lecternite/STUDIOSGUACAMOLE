@@ -7,7 +7,7 @@ using Mirror;
 
 public class gunScript : NetworkBehaviour
 {
-    public GameObject cubePrefab;
+    DependencyHelper<gunScript> dependencyHelper;
 
     Vector3 defaultPos = new Vector3(0.4f, -0.25f, 0.3f);
     Vector3 scopedPos = new Vector3(0f, -0.175f, 0.4f);
@@ -16,12 +16,11 @@ public class gunScript : NetworkBehaviour
     float v = 0;
 
     [HideInInspector]
-    public Image pointer;
+    Image pointer;
 
-    [SerializeField]
     ParticleSystem spark;
 
-    float recoil = 0;
+    public float recoil = 0;
 
     Vector3 startPos;
     Quaternion startRot;
@@ -67,12 +66,20 @@ public class gunScript : NetworkBehaviour
 
     public static List<RayCommand> rayCmdList = new List<RayCommand>();
 
+    AudioSource audio_source;
+
+    UnityEngine.Object bullet_visual_obj;
+
     private void Awake()
     {
+        dependencyHelper = new DependencyHelper<gunScript>(this);
+
         col = GetComponent<SphereCollider>();
         camScript = FindObjectOfType<cameraScript>();
-        camScript.cameraUpdated += OnCamUpdate;
         pointer = GameObject.FindGameObjectWithTag("CrossHair").GetComponent<Image>();
+        spark = ((GameObject)Resources.Load("Spark")).GetComponent<ParticleSystem>();
+        audio_source = GetComponent<AudioSource>();
+        bullet_visual_obj = Resources.Load("BulletVisual");
     }
 
     private void OnDestroy()
@@ -92,6 +99,8 @@ public class gunScript : NetworkBehaviour
             col.enabled = false;
 
             canpickup = false;
+            camScript.cameraUpdated += OnCamUpdate;
+
         }
     }
 
@@ -100,6 +109,8 @@ public class gunScript : NetworkBehaviour
         mode = 0;
         col.enabled = true;
         cooldown = 1f;
+        camScript.cameraUpdated -= OnCamUpdate;
+
         GunDropped?.Invoke();
     }
 
@@ -139,11 +150,11 @@ public class gunScript : NetworkBehaviour
             v = Mathf.Sin(Mathf.PI * value / 2f);
 
 
-            recoil -= 300 * Time.deltaTime;
+            recoil -= 400f * Time.deltaTime;
             recoil = Mathf.Max(0f, recoil);
 
             Camera.main.fieldOfView = Mathf.Lerp(80f, 50f, v);
-            pointer.color = new Color(pointer.color.r, pointer.color.g, pointer.color.b, 1f - v);
+            pointer.color = new Color(pointer.color.r, pointer.color.g, pointer.color.b, (1f - v) * 0.3f);
 
             if (Camera.main.GetComponent<cameraScript>().player.GetComponent<playerScript>().grounded)
             {
@@ -204,23 +215,30 @@ public class gunScript : NetworkBehaviour
 
     void update(float deltaTime)
     {
-
-        if (!isServer)
-        {
-            gameEvents.updateLaggyState();
-        }
-
-        if (playerShotThisFrame && mode == GunState.Held)
+        if (playerShotThisFrame && mode == GunState.Held && recoil < 0.01f)
         {
             recoil = 70;
+            audio_source.time = 0.1f;
+            audio_source.Play();
+            GameObject thing = (GameObject)Instantiate(bullet_visual_obj);
+            LineRenderer bullet_line = thing.GetComponent<LineRenderer>();
+            Vector3 start = transform.position + transform.up * 0.15f;
+            Vector3 pos = start + Camera.main.transform.forward * 0.3f;
+            Vector3 pos2 = start + Camera.main.transform.forward * 6f;
+
+            for(int i = 0; i < bullet_line.positionCount; i++)
+            {
+                bullet_line.SetPosition(i, Vector3.Lerp(pos, pos2, i / (bullet_line.positionCount - 1f) ) );
+            }
+            thing.GetComponent<BulletVisualScript>().direction = Camera.main.transform.forward;
+
             if (isServer)
             {
                 CMD_Shoot(new Ray(Camera.main.transform.position, Camera.main.transform.forward), Clocky.instance.tick, Clocky.instance.tick * 1f);
-
             }
             else
             {
-                CMD_Shoot(new Ray(Camera.main.transform.position, Camera.main.transform.forward), Clocky.instance.tick, gameEvents.lagTesterState);
+                CMD_Shoot(new Ray(Camera.main.transform.position, Camera.main.transform.forward), Clocky.instance.tick, LagCompensation.Instance.lagTesterState);
                 if (isClientOnly)
                 {
                     RaycastHit hit0;
@@ -231,8 +249,8 @@ public class gunScript : NetworkBehaviour
                 }
 
             }
-        }
 
+        }
 
         if (isServer)
         {

@@ -11,8 +11,6 @@ public class GameEvents : NetworkBehaviour
 
     public bool localPlayerReady = false;
 
-    Interpolator interpolator = new Interpolator();
-
     [SyncVar]
     public int numReady = 0;
 
@@ -29,13 +27,10 @@ public class GameEvents : NetworkBehaviour
     public UnityEvent<GameState> GameStateEntered;
     public UnityEvent<GameState> GameStateExited;
 
-    public float lagTesterState;
-
     public override void OnStartServer()
     {
         base.OnStartServer();
         GameStateEntered?.Invoke(gameState);
-        Clocky.instance.SendTime += sendStateToClient;
     }
 
     public override void OnStartClient()
@@ -44,17 +39,11 @@ public class GameEvents : NetworkBehaviour
         GameStateEntered?.Invoke(gameState);
     }
 
-
-
-    #region RPC
-
     [Command(requiresAuthority = false)]
     public void CMD_EnterGameState(GameState _gameState)
     {
         RPC_EnterGameState(_gameState);
     }
-
-
     
     [Command(requiresAuthority = false)]
     public void toserver_sendName(NetworkIdentity netID, string name)
@@ -71,8 +60,6 @@ public class GameEvents : NetworkBehaviour
         }
     }
     
-    
-    
     [Command(requiresAuthority = false)]
     public void server_requestNames(NetworkIdentity netID)
     {
@@ -87,7 +74,6 @@ public class GameEvents : NetworkBehaviour
             toserver_sendName(NetworkClient.localPlayer, playerUserName);
         }
     }
-    
 
     [ClientRpc]
     void RPC_EnterGameState(GameState state)
@@ -107,23 +93,6 @@ public class GameEvents : NetworkBehaviour
         else
         {
             numReady -= 1;
-        }
-    }
-
-    #endregion
-
-
-    void sendStateToClient()
-    {
-        RPC_SyncState(Clocky.instance.tick * 1f, Clocky.instance.tick);
-    }
-
-    [ClientRpc]
-    void RPC_SyncState(float state, int serverTick)
-    {
-        if (!isServer)
-        {
-            interpolator.addTarget(serverTick + Clocky.instance.avgTickOffset + 4, new Vector3(state, 0, 0));
         }
     }
 
@@ -166,26 +135,15 @@ public class GameEvents : NetworkBehaviour
         {
             if(iter == num)
             {
-                client.Value.identity.gameObject.GetComponent<playerScript>().setImposter(true);
+                client.Value.identity.gameObject.GetComponent<playerScript>().imposter = true;
             }
             iter += 1;
         }
 
         RPC_EnterGameState(GameState.murderMystery);
     }
-
-    public string getNumPlayers()
-    {
-        return NetworkServer.connections.Count.ToString();
-    }
-
     public void setUsername(string name)
     {
         playerUserName = name;
-    }
-
-    public void updateLaggyState()
-    {
-        lagTesterState = interpolator.interpolate(Clocky.instance.tick).x;
     }
 }

@@ -2,7 +2,6 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-
 public class Snapshot
 {
     public float tick;
@@ -65,7 +64,7 @@ public class Interpolator
         }
         if (interpolationStopped)
         {
-            Debug.LogError("Interpolation this interpolator has stuttered");
+            Debug.LogError("This interpolator has stuttered");
         }
         else
         {

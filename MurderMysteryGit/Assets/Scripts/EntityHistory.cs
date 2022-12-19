@@ -2,15 +2,15 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using System;
-using Mirror;
 
 public class EntityHistory : MonoBehaviour
 {
     public static EntityHistory Instance;
 
-    public RecordCollection[] historyBuffer = new RecordCollection[50];
-
     public List<GameObject> trackedEntities = new List<GameObject>();
+
+    const int bufferSize = 50;
+    public RecordCollection[] historyBuffer = new RecordCollection[bufferSize];
 
     public static event Action<EntityHistory> EntityHistoryCreated;
 
@@ -37,8 +37,8 @@ public class EntityHistory : MonoBehaviour
 
     void update()
     {
-        int currentIndex = (Clocky.instance.tick + 1) % 50;
-        historyBuffer[currentIndex] = new RecordCollection();//The transforms are one frame late i think
+        int currentIndex = (Clocky.instance.tick + 1) % bufferSize;
+        historyBuffer[currentIndex] = new RecordCollection();
         for(int i = 0; i < trackedEntities.Count; i++)
         {
             if (trackedEntities[i] == null)
@@ -55,7 +55,7 @@ public class EntityHistory : MonoBehaviour
 
     public bool RayPast(int tick, Ray ray, float maxDist, out RaycastHit hit, GameObject excludeObject = null) //Currently raypast only calculates nearest tick, no interpolation
     {
-        RecordCollection currentRecordCollection = historyBuffer[tick % 50];
+        RecordCollection currentRecordCollection = historyBuffer[tick % bufferSize];
 
         //Set all of the tracked entites to the correct positions and get rid of null entities
         for (int i = 0; i < currentRecordCollection.entities.Count; i++)
@@ -63,6 +63,7 @@ public class EntityHistory : MonoBehaviour
             if(currentRecordCollection.entities[i] == null)
             {
                 currentRecordCollection.entities.RemoveAt(i);
+                i -= 1;
             }
             else
             {
@@ -87,5 +88,3 @@ public class EntityHistory : MonoBehaviour
         return result;
     }
 }
-
-
