@@ -9,7 +9,7 @@ public class EntityHistory : MonoBehaviour
 
     public List<GameObject> trackedEntities = new List<GameObject>();
 
-    const int bufferSize = 50;
+    const int bufferSize = 50; // number of frames that is stored in history
     public RecordCollection[] historyBuffer = new RecordCollection[bufferSize];
 
     public static event Action<EntityHistory> EntityHistoryCreated;
@@ -60,6 +60,10 @@ public class EntityHistory : MonoBehaviour
         //Set all of the tracked entites to the correct positions and get rid of null entities
         for (int i = 0; i < currentRecordCollection.entities.Count; i++)
         {
+            if (currentRecordCollection.entities[i].gameObject == excludeObject)
+            {
+                continue;
+            }
             if(currentRecordCollection.entities[i] == null)
             {
                 currentRecordCollection.entities.RemoveAt(i);
@@ -80,6 +84,10 @@ public class EntityHistory : MonoBehaviour
         //Put them back
         for (int i = 0; i < currentRecordCollection.entities.Count; i++)
         {
+            if (currentRecordCollection.entities[i].gameObject == excludeObject)
+            {
+                continue;
+            }
             currentRecordCollection.entities[i].gameObject.transform.position = currentRecordCollection.entities[i].temp;
         }
         Physics.SyncTransforms();
