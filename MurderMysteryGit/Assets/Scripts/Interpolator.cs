@@ -46,8 +46,8 @@ public class Interpolator
         interpolationStopped = true;
         for(int i = 0; i < positions.Count - 1; i++)
         {
-            t = InverseLerp((float)positions[i].tick, (float)positions[i + 1].tick, tick);
-            if (0 <= t && t <= 1f)
+            t = InverseLerp(positions[i].tick, positions[i + 1].tick, tick);
+            if (0 <= t && t <= 1f)//means a suitable interpolated pose has been found
             {
                 interpolationStopped = false;
                 from = positions[i].position;
@@ -66,10 +66,7 @@ public class Interpolator
         {
             Debug.LogError("This interpolator has stuttered");
         }
-        else
-        {
-            current = Vector3.Lerp(from, to, t);
-        }
+        current = Vector3.Lerp(from, to, t);
 
         return current;
     }

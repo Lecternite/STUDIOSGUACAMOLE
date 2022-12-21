@@ -28,7 +28,7 @@ public class playerScript : NetworkBehaviour
 
     public GameEvents gameEvents;
 
-    DependencyHelper<playerScript> dependencyHelper;
+    DependencyHelper<playerScript> dependency_helper;
 
     gunScript gun;
 
@@ -48,7 +48,7 @@ public class playerScript : NetworkBehaviour
 
     public void Awake()
     {
-        dependencyHelper = new DependencyHelper<playerScript>(this);
+        dependency_helper = new DependencyHelper<playerScript>(this);
         gameEvents = FindObjectOfType<GameEvents>();
         myCollider = GetComponent<CapsuleCollider>();
     }
@@ -160,7 +160,7 @@ public class playerScript : NetworkBehaviour
                         if (canPickUp)
                         {
                             gun = colliders[i].gameObject.GetComponent<gunScript>();
-                            gun.collect(ref canPickUp);
+                            gun.collect(ref canPickUp, gameObject);
                             gun.GunDropped += gunIsDropped;
                         }
                     }
@@ -180,7 +180,6 @@ public class playerScript : NetworkBehaviour
                 }
             }
         }
-
     }
 
     public void handleStateChange(GameEvents.GameState state)

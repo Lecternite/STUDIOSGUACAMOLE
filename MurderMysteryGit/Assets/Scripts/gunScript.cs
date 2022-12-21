@@ -47,11 +47,13 @@ public class gunScript : NetworkBehaviour
         public Ray ray;
         public int tick;
         public float lagState;
-        public RayCommand(Ray _ray, int _tick, float _lagState)
+        public NetworkIdentity exclude;
+        public RayCommand(Ray _ray, int _tick, float _lagState, NetworkIdentity _exclude)
         {
             ray = _ray;
             tick = _tick;
             lagState = _lagState;
+            exclude = _exclude;
         }
     }
 
@@ -70,6 +72,8 @@ public class gunScript : NetworkBehaviour
 
     UnityEngine.Object bullet_visual_obj;
 
+    GameObject my_player = null;
+
     private void Awake()
     {
         dependencyHelper = new DependencyHelper<gunScript>(this);
@@ -87,7 +91,7 @@ public class gunScript : NetworkBehaviour
         camScript.cameraUpdated -= OnCamUpdate;
     }
 
-    public void collect(ref bool canpickup)
+    public void collect(ref bool canpickup, GameObject _player)
     {
         if (cooldown < 0.001f) 
         {
@@ -101,6 +105,7 @@ public class gunScript : NetworkBehaviour
             canpickup = false;
             camScript.cameraUpdated += OnCamUpdate;
 
+            my_player = _player;
         }
     }
 
@@ -112,6 +117,8 @@ public class gunScript : NetworkBehaviour
         camScript.cameraUpdated -= OnCamUpdate;
 
         GunDropped?.Invoke();
+
+        my_player = null;
     }
 
     private void OnCamUpdate()
@@ -173,9 +180,9 @@ public class gunScript : NetworkBehaviour
     }
 
     [Command(requiresAuthority = false)]
-    void CMD_Shoot(Ray ray, int tick, float lagState)
+    void CMD_Shoot(Ray ray, int tick, float lagState, NetworkIdentity exclude)
     {
-        rayCmdList.Add(new RayCommand(ray, tick, lagState));
+        rayCmdList.Add(new RayCommand(ray, tick, lagState, exclude));
     }
 
     private void Start()
@@ -195,7 +202,7 @@ public class gunScript : NetworkBehaviour
         int tick = (int)rayCommand.lagState;
 
         RaycastHit hit;
-        if (EntityHistory.Instance.RayPast(tick, rayCommand.ray, 100f, out hit))
+        if (EntityHistory.Instance.RayPast(tick, rayCommand.ray, 100f, out hit, rayCommand.exclude.gameObject))
         {
             if (hit.rigidbody != null)
             {
@@ -234,11 +241,12 @@ public class gunScript : NetworkBehaviour
 
             if (isServer)
             {
-                CMD_Shoot(new Ray(Camera.main.transform.position, Camera.main.transform.forward), Clocky.instance.tick, Clocky.instance.tick * 1f);
+                CMD_Shoot(new Ray(Camera.main.transform.position, Camera.main.transform.forward), Clocky.instance.tick, Clocky.instance.tick, my_player.GetComponent<NetworkIdentity>());
             }
             else
             {
-                CMD_Shoot(new Ray(Camera.main.transform.position, Camera.main.transform.forward), Clocky.instance.tick, LagCompensation.Instance.lagTesterState);
+                CMD_Shoot(new Ray(Camera.main.transform.position, Camera.main.transform.forward), Clocky.instance.tick, LagCompensation.Instance.lagTesterState, my_player.GetComponent<NetworkIdentity>());
+                //Client-side spark effect:
                 if (isClientOnly)
                 {
                     RaycastHit hit0;

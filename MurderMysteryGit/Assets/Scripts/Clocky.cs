@@ -45,7 +45,6 @@ public class Clocky : NetworkBehaviour
     float averageCorrection = 0f;
     int avgCorrectionMagnitude = 0;
 
-
     private void Awake()
     {
         instance = this;
@@ -209,7 +208,6 @@ public class Clocky : NetworkBehaviour
     [TargetRpc]
     public void RPC_TickStart(NetworkConnection conn, int serverTick, int adjustment)
     {
-        //tick = serverTick + 5;
         Debug.Log("START offset: " + adjustment.ToString());
         tick += adjustment;
 
